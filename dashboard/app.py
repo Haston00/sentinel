@@ -52,7 +52,7 @@ st.set_page_config(
     page_title=STREAMLIT_PAGE_TITLE,
     page_icon=STREAMLIT_PAGE_ICON,
     layout=STREAMLIT_LAYOUT,
-    initial_sidebar_state="expanded",
+    initial_sidebar_state="auto",
 )
 
 # ── Custom CSS ────────────────────────────────────────────────
@@ -77,16 +77,29 @@ st.markdown(
             border-radius: 8px;
         }}
         /* Mobile responsive — prevent text cutoff on phones */
+        * {{
+            word-wrap: break-word !important;
+            overflow-wrap: break-word !important;
+        }}
         @media (max-width: 768px) {{
-            h1 {{ font-size: 1.5rem !important; }}
-            h2 {{ font-size: 1.3rem !important; }}
-            h3 {{ font-size: 1.1rem !important; }}
-            .stApp > div {{ padding-left: 0.5rem; padding-right: 0.5rem; }}
+            h1 {{ font-size: 1.4rem !important; word-break: break-word !important; }}
+            h2 {{ font-size: 1.2rem !important; word-break: break-word !important; }}
+            h3 {{ font-size: 1.0rem !important; }}
+            .stMainBlockContainer {{
+                padding-left: 0.5rem !important;
+                padding-right: 0.5rem !important;
+                max-width: 100vw !important;
+                overflow-x: hidden !important;
+            }}
             div[data-testid="stHorizontalBlock"] {{
                 flex-wrap: wrap !important;
             }}
             div[data-testid="stMetric"] {{
                 min-width: 45% !important;
+            }}
+            section[data-testid="stSidebar"] {{
+                width: 250px !important;
+                min-width: 250px !important;
             }}
         }}
         /* Hide Streamlit deploy button and hamburger menu */
