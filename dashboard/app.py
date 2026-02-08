@@ -102,21 +102,21 @@ st.markdown(
                 min-width: 250px !important;
             }}
         }}
-        /* Hide Streamlit deploy button and hamburger menu */
+        /* Hide Streamlit deploy button only — keep sidebar toggle visible */
         .stDeployButton {{
             display: none !important;
         }}
-        #MainMenu {{
-            display: none !important;
-        }}
-        header[data-testid="stHeader"] .stActionButton {{
-            display: none !important;
-        }}
-        button[kind="header"] {{
-            display: none !important;
-        }}
-        div[data-testid="stToolbar"] {{
-            display: none !important;
+        /* Force sidebar visible on mobile */
+        @media (max-width: 768px) {{
+            section[data-testid="stSidebar"] {{
+                display: block !important;
+                z-index: 999 !important;
+            }}
+            button[data-testid="stSidebarCollapseButton"],
+            button[data-testid="stSidebarNavToggle"] {{
+                display: block !important;
+                z-index: 1000 !important;
+            }}
         }}
     </style>
     """,
