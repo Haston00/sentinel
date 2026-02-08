@@ -1,0 +1,33 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.egg-info/
+dist/
+build/
+
+# Data cache (regenerated at runtime)
+data/cache/
+
+# Saved models (regenerated at runtime)
+models/saved/
+
+# Environment / secrets
+.env
+*.env
+.streamlit/secrets.toml
+
+# Windows
+*.ico
+*.bat
+*.ps1
+Thumbs.db
+Desktop.ini
+
+# IDE
+.vscode/
+.idea/
+
+# Logs
+logs/
+*.log

@@ -1,0 +1,1 @@
+"""SENTINEL dashboard pages."""
