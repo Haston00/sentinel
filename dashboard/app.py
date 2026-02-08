@@ -76,6 +76,19 @@ st.markdown(
             padding: 10px;
             border-radius: 8px;
         }}
+        /* Mobile responsive — prevent text cutoff on phones */
+        @media (max-width: 768px) {{
+            h1 {{ font-size: 1.5rem !important; }}
+            h2 {{ font-size: 1.3rem !important; }}
+            h3 {{ font-size: 1.1rem !important; }}
+            .stApp > div {{ padding-left: 0.5rem; padding-right: 0.5rem; }}
+            div[data-testid="stHorizontalBlock"] {{
+                flex-wrap: wrap !important;
+            }}
+            div[data-testid="stMetric"] {{
+                min-width: 45% !important;
+            }}
+        }}
         /* Hide Streamlit deploy button and hamburger menu */
         .stDeployButton {{
             display: none !important;
