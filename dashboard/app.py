@@ -52,7 +52,7 @@ st.set_page_config(
     page_title=STREAMLIT_PAGE_TITLE,
     page_icon=STREAMLIT_PAGE_ICON,
     layout=STREAMLIT_LAYOUT,
-    initial_sidebar_state="auto",
+    initial_sidebar_state="expanded",
 )
 
 # ── Custom CSS ────────────────────────────────────────────────
@@ -128,7 +128,7 @@ st.markdown(
 RADAR_HTML = """<!DOCTYPE html>
 <html><head><style>
 *{margin:0;padding:0;box-sizing:border-box}
-body{background:#0E1117;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;overflow:hidden;font-family:'Segoe UI',Consolas,monospace}
+body{background:#0E1117;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;overflow:hidden;font-family:'Segoe UI',Consolas,monospace;text-align:center}
 @keyframes sweep{0%{transform:rotate(0deg)}100%{transform:rotate(360deg)}}
 @keyframes fadeInUp{0%{opacity:0;transform:translateY(40px)}100%{opacity:1;transform:translateY(0)}}
 @keyframes pulse{0%,100%{opacity:.3;transform:scale(1)}50%{opacity:1;transform:scale(1.4)}}
@@ -138,7 +138,7 @@ body{background:#0E1117;display:flex;flex-direction:column;align-items:center;ju
 @keyframes drift{0%,100%{transform:translate(0,0)}25%{transform:translate(3px,-2px)}50%{transform:translate(-2px,3px)}75%{transform:translate(2px,1px)}}
 @keyframes targetAppear{0%{opacity:0;transform:scale(0)}50%{opacity:1;transform:scale(1.5)}100%{opacity:.8;transform:scale(1)}}
 .sc{display:flex;flex-direction:column;align-items:center;justify-content:center;animation:fadeInUp 1s ease-out}
-.rw{position:relative;width:400px;height:400px}
+.rw{position:relative;width:min(400px,70vw);height:min(400px,70vw)}
 .rbg{position:absolute;top:0;left:0;width:100%;height:100%;border-radius:50%;background:radial-gradient(circle at 50% 50%,#0a1628 0%,#060e1e 40%,#030912 70%,#010408 100%);border:2px solid #1a3a5c;box-shadow:0 0 80px rgba(41,98,255,.12),0 0 150px rgba(41,98,255,.06),inset 0 0 100px rgba(0,0,0,.6);overflow:hidden}
 .og{position:absolute;top:-10px;left:-10px;width:calc(100% + 20px);height:calc(100% + 20px);border-radius:50%;border:1px solid rgba(41,98,255,.08);box-shadow:0 0 40px rgba(41,98,255,.06);pointer-events:none}
 .rr{position:absolute;border:1px solid rgba(41,98,255,.15);border-radius:50%;top:50%;left:50%;transform:translate(-50%,-50%);pointer-events:none}
@@ -159,8 +159,8 @@ body{background:#0E1117;display:flex;flex-direction:column;align-items:center;ju
 .td{color:rgba(0,200,83,.25);text-shadow:0 0 5px rgba(0,200,83,.15);animation:blink 5s ease-in-out infinite,drift 12s ease-in-out infinite}
 .tn{animation:targetAppear 1.5s ease-out forwards,pulse 3s ease-in-out 1.5s infinite,drift 10s ease-in-out infinite}
 .dr{position:absolute;border:1px solid rgba(0,255,100,.4);border-radius:50%;width:10px;height:10px;pointer-events:none;animation:expandRing 3s ease-out infinite}
-.st{font-size:56px;font-weight:700;color:#d0ddff;letter-spacing:18px;margin-top:35px;text-shadow:0 0 40px rgba(41,98,255,.4),0 2px 4px rgba(0,0,0,.5);animation:fadeInUp 1.2s ease-out .3s both}
-.ss{font-size:14px;color:#4a6a8a;letter-spacing:8px;margin-top:10px;animation:fadeInUp 1.2s ease-out .6s both}
+.st{font-size:clamp(28px,8vw,56px);font-weight:700;color:#d0ddff;letter-spacing:clamp(8px,3vw,18px);margin-top:35px;text-shadow:0 0 40px rgba(41,98,255,.4),0 2px 4px rgba(0,0,0,.5);animation:fadeInUp 1.2s ease-out .3s both}
+.ss{font-size:clamp(10px,2.5vw,14px);color:#4a6a8a;letter-spacing:clamp(3px,1.5vw,8px);margin-top:10px;animation:fadeInUp 1.2s ease-out .6s both}
 .sl{font-size:13px;color:#00C853;margin-top:28px;animation:blink 1.5s ease-in-out infinite;letter-spacing:3px}
 .sx{font-size:11px;color:#2a4a6a;margin-top:8px;letter-spacing:1px;animation:fadeInUp 1s ease-out 1.5s both}
 </style></head><body>
