@@ -200,6 +200,7 @@ body{background:#0E1117;display:flex;flex-direction:column;align-items:center;ju
 <div class="ss">MARKET INTELLIGENCE SYSTEM</div>
 <div class="sl">SCANNING MARKETS...</div>
 <div class="sx">EQUITIES &#8226; CRYPTO &#8226; MACRO &#8226; NEWS</div>
+<div style="margin-top:40px;font-size:11px;color:#2a4a6a;letter-spacing:2px;animation:fadeInUp 1.5s ease-out 2s both;font-style:italic">from the mind of Brandon Haston</div>
 </div>
 </body></html>"""
 
