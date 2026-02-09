@@ -24,6 +24,92 @@ from utils.logger import get_logger
 logger = get_logger(__name__)
 
 
+def _get_top_movers():
+    """
+    Pull today's % change for ALL stocks in the universe + crypto.
+    Returns dict with 'high_flyers' (top 5 up) and 'sinking_ships' (top 5 down).
+    """
+    import yfinance as yf
+
+    # Collect all individual stock tickers from sector holdings
+    all_tickers = set()
+    for sector_name, info in SECTORS.items():
+        all_tickers.update(info["holdings"])
+    # Add benchmarks and asset class ETFs
+    for t in BENCHMARKS.values():
+        all_tickers.add(t)
+
+    all_tickers = sorted(all_tickers)
+
+    movers = []
+
+    # Batch download — yfinance handles this efficiently
+    try:
+        data = yf.download(all_tickers, period="5d", group_by="ticker", progress=False, threads=True)
+        for ticker in all_tickers:
+            try:
+                if len(all_tickers) == 1:
+                    tdf = data
+                else:
+                    tdf = data[ticker] if ticker in data.columns.get_level_values(0) else None
+
+                if tdf is None or tdf.empty:
+                    continue
+
+                closes = tdf["Close"].dropna()
+                if len(closes) < 2:
+                    continue
+
+                current = float(closes.iloc[-1])
+                prev = float(closes.iloc[-2])
+                if prev == 0:
+                    continue
+                day_pct = (current - prev) / prev * 100
+
+                # Figure out which sector this stock belongs to
+                from config.assets import get_sector_for_ticker
+                sector = get_sector_for_ticker(ticker) or ""
+
+                movers.append({
+                    "name": ticker,
+                    "type": "Stock",
+                    "sector": sector,
+                    "price": current,
+                    "day_change": round(day_pct, 2),
+                })
+            except Exception:
+                continue
+    except Exception as e:
+        logger.warning(f"Batch download failed: {e}")
+
+    # Add crypto
+    try:
+        crypto_raw = get_crypto_prices()
+        if crypto_raw:
+            from config.assets import CRYPTO_ALL
+            for coin_id, info in CRYPTO_ALL.items():
+                cdata = crypto_raw.get(coin_id, {})
+                if cdata:
+                    price = cdata.get("usd", 0)
+                    chg = cdata.get("usd_24h_change", 0) or 0
+                    movers.append({
+                        "name": info["symbol"],
+                        "type": "Crypto",
+                        "sector": "Crypto",
+                        "price": price,
+                        "day_change": round(chg, 2),
+                    })
+    except Exception:
+        pass
+
+    # Sort
+    movers_sorted = sorted(movers, key=lambda x: x["day_change"], reverse=True)
+    high_flyers = movers_sorted[:5]
+    sinking_ships = sorted(movers, key=lambda x: x["day_change"])[:5]
+
+    return {"high_flyers": high_flyers, "sinking_ships": sinking_ships}
+
+
 def _score_asset(ticker):
     """Score any single ticker. Returns dict with score, label, signals, price info."""
     df = fetch_ohlcv(ticker)
@@ -185,6 +271,7 @@ def generate_market_briefing() -> dict:
         "action_items": [],
         "watch_list": [],
         "bottom_line": "",
+        "top_movers": {"high_flyers": [], "sinking_ships": []},
         "timestamp": datetime.now(ZoneInfo("America/New_York")).strftime("%I:%M %p ET — %b %d, %Y"),
     }
 
@@ -385,7 +472,15 @@ def generate_market_briefing() -> dict:
     )
 
     # ══════════════════════════════════════════════════════════════
-    # STEP 14: Bottom line
+    # STEP 14: Top movers — high flyers and sinking ships
+    # ══════════════════════════════════════════════════════════════
+    try:
+        briefing["top_movers"] = _get_top_movers()
+    except Exception as e:
+        logger.warning(f"Top movers failed: {e}")
+
+    # ══════════════════════════════════════════════════════════════
+    # STEP 15: Bottom line
     # ══════════════════════════════════════════════════════════════
     briefing["bottom_line"] = _build_bottom_line(
         spy_score, health_score, regime, overall_inter, sector_data, briefing.get("crypto", {})

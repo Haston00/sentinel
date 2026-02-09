@@ -47,8 +47,20 @@ def render():
     primary = COLORS["primary"]
     bg = COLORS["background"]
 
+    # Refresh controls
+    rc1, rc2 = st.columns([3, 1])
+    with rc2:
+        if st.button("Refresh Now", type="primary", key="briefing_refresh"):
+            st.cache_data.clear()
+            st.rerun()
+
     with st.spinner("Scoring every sector, asset class, and crypto signal..."):
         briefing = _cached_briefing()
+
+    # Show last-updated timestamp
+    ts = briefing.get("timestamp", "")
+    if ts:
+        st.caption(f"Last updated: {ts}")
 
     # ═══════════════════════════════════════════════════════════
     # HEADLINE BANNER
@@ -83,6 +95,120 @@ def render():
         f"</div>",
         unsafe_allow_html=True,
     )
+
+    # ═══════════════════════════════════════════════════════════
+    # WHAT THE SCORE MEANS (explainer)
+    # ═══════════════════════════════════════════════════════════
+    with st.expander("What does the 0-100 score mean?", expanded=False):
+        st.markdown(
+            f"""<div style='color:{text_color};font-size:14px;line-height:1.8'>
+            <p>Every asset gets scored <b>0 to 100</b> based on 8 things, weighted by how reliable they are:</p>
+            <table style='width:100%;border-collapse:collapse;margin:10px 0'>
+            <tr style='border-bottom:1px solid #333'>
+                <td style='padding:6px;color:{primary};font-weight:600'>Trend (20%)</td>
+                <td style='padding:6px'>Is the price above or below its moving averages? Are the averages lined up bullish or bearish?</td>
+            </tr>
+            <tr style='border-bottom:1px solid #333'>
+                <td style='padding:6px;color:{primary};font-weight:600'>Momentum (20%)</td>
+                <td style='padding:6px'>Is the price going up over the last week, month, and 3 months? All three lining up = strong signal.</td>
+            </tr>
+            <tr style='border-bottom:1px solid #333'>
+                <td style='padding:6px;color:{primary};font-weight:600'>MACD (15%)</td>
+                <td style='padding:6px'>A popular indicator that catches when momentum is speeding up or slowing down. Positive and rising = bullish.</td>
+            </tr>
+            <tr style='border-bottom:1px solid #333'>
+                <td style='padding:6px;color:{primary};font-weight:600'>RSI (12%)</td>
+                <td style='padding:6px'>Measures if something is overbought or oversold. Smart twist: in strong uptrends, high RSI is good (confirms strength), not bad.</td>
+            </tr>
+            <tr style='border-bottom:1px solid #333'>
+                <td style='padding:6px;color:{primary};font-weight:600'>Trend Strength (10%)</td>
+                <td style='padding:6px'>ADX indicator — tells you HOW STRONG the trend is, not which direction. Strong trends (up or down) are more tradeable.</td>
+            </tr>
+            <tr style='border-bottom:1px solid #333'>
+                <td style='padding:6px;color:{primary};font-weight:600'>Volume (8%)</td>
+                <td style='padding:6px'>Is trading volume higher or lower than normal? High volume on an up day = real buying. High volume on a down day = real selling.</td>
+            </tr>
+            <tr style='border-bottom:1px solid #333'>
+                <td style='padding:6px;color:{primary};font-weight:600'>Mean Reversion (8%)</td>
+                <td style='padding:6px'>Bollinger Bands — when price stretches too far from average, it tends to snap back. Catches extremes.</td>
+            </tr>
+            <tr>
+                <td style='padding:6px;color:{primary};font-weight:600'>Volatility (7%)</td>
+                <td style='padding:6px'>When volatility gets unusually quiet, a big move is brewing. This catches those setups before they explode.</td>
+            </tr>
+            </table>
+            <p style='margin-top:12px'><b>80-100</b> = Strong Buy &nbsp;|&nbsp; <b>65-80</b> = Buy &nbsp;|&nbsp; <b>55-65</b> = Lean Bullish &nbsp;|&nbsp; <b>45-55</b> = Neutral &nbsp;|&nbsp; <b>35-45</b> = Lean Bearish &nbsp;|&nbsp; <b>20-35</b> = Sell &nbsp;|&nbsp; <b>0-20</b> = Strong Sell</p>
+            </div>""",
+            unsafe_allow_html=True,
+        )
+
+    # ═══════════════════════════════════════════════════════════
+    # TOP MOVERS — HIGH FLYERS & SINKING SHIPS
+    # ═══════════════════════════════════════════════════════════
+    top_movers = briefing.get("top_movers", {})
+    high_flyers = top_movers.get("high_flyers", [])
+    sinking_ships = top_movers.get("sinking_ships", [])
+
+    if high_flyers or sinking_ships:
+        mc1, mc2 = st.columns(2)
+
+        with mc1:
+            st.markdown(
+                f"<h3 style='color:{bull_color};margin-bottom:10px'>Top 5 High Flyers Today</h3>",
+                unsafe_allow_html=True,
+            )
+            for i, m in enumerate(high_flyers, 1):
+                price = m.get("price", 0)
+                p_str = f"${price:,.2f}" if price < 1000 else f"${price:,.0f}"
+                if m.get("type") == "Crypto" and price < 1:
+                    p_str = f"${price:.4f}"
+                sector_tag = f"<span style='color:#888;font-size:11px;margin-left:6px'>{m.get('sector', '')}</span>" if m.get("sector") else ""
+                st.markdown(
+                    f"<div style='background:{surface};padding:12px 16px;border-radius:8px;margin-bottom:6px;"
+                    f"border-left:4px solid {bull_color};display:flex;align-items:center;justify-content:space-between'>"
+                    f"<div>"
+                    f"<span style='color:{bull_color};font-weight:700;font-size:18px;margin-right:8px'>#{i}</span>"
+                    f"<span style='color:{text_color};font-weight:600;font-size:15px'>{m['name']}</span>"
+                    f"<span style='background:rgba(0,200,83,0.15);color:{bull_color};padding:2px 8px;border-radius:10px;font-size:10px;margin-left:8px'>{m.get('type', '')}</span>"
+                    f"{sector_tag}"
+                    f"</div>"
+                    f"<div style='text-align:right'>"
+                    f"<span style='color:{text_color};font-size:14px;margin-right:12px'>{p_str}</span>"
+                    f"<span style='color:{bull_color};font-weight:700;font-size:16px'>{m['day_change']:+.1f}%</span>"
+                    f"</div>"
+                    f"</div>",
+                    unsafe_allow_html=True,
+                )
+
+        with mc2:
+            st.markdown(
+                f"<h3 style='color:{bear_color};margin-bottom:10px'>Top 5 Sinking Ships Today</h3>",
+                unsafe_allow_html=True,
+            )
+            for i, m in enumerate(sinking_ships, 1):
+                price = m.get("price", 0)
+                p_str = f"${price:,.2f}" if price < 1000 else f"${price:,.0f}"
+                if m.get("type") == "Crypto" and price < 1:
+                    p_str = f"${price:.4f}"
+                sector_tag = f"<span style='color:#888;font-size:11px;margin-left:6px'>{m.get('sector', '')}</span>" if m.get("sector") else ""
+                st.markdown(
+                    f"<div style='background:{surface};padding:12px 16px;border-radius:8px;margin-bottom:6px;"
+                    f"border-left:4px solid {bear_color};display:flex;align-items:center;justify-content:space-between'>"
+                    f"<div>"
+                    f"<span style='color:{bear_color};font-weight:700;font-size:18px;margin-right:8px'>#{i}</span>"
+                    f"<span style='color:{text_color};font-weight:600;font-size:15px'>{m['name']}</span>"
+                    f"<span style='background:rgba(255,23,68,0.15);color:{bear_color};padding:2px 8px;border-radius:10px;font-size:10px;margin-left:8px'>{m.get('type', '')}</span>"
+                    f"{sector_tag}"
+                    f"</div>"
+                    f"<div style='text-align:right'>"
+                    f"<span style='color:{text_color};font-size:14px;margin-right:12px'>{p_str}</span>"
+                    f"<span style='color:{bear_color};font-weight:700;font-size:16px'>{m['day_change']:+.1f}%</span>"
+                    f"</div>"
+                    f"</div>",
+                    unsafe_allow_html=True,
+                )
+
+        st.markdown("")
 
     # ═══════════════════════════════════════════════════════════
     # KEY TAKEAWAYS
