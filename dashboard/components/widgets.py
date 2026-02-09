@@ -3,8 +3,75 @@ SENTINEL — Reusable Streamlit UI widgets.
 """
 
 import streamlit as st
+import streamlit.components.v1 as components
 
 from config.settings import COLORS
+
+
+def render_ticker_bar(ticker_data: list) -> None:
+    """Render a Wall Street-style scrolling stock ticker bar."""
+    if not ticker_data:
+        return
+
+    items_html = ""
+    for item in ticker_data:
+        symbol = item["symbol"]
+        price = item["price"]
+        change = item["change"]
+        color = "#00C853" if change >= 0 else "#FF1744"
+        arrow = "\u25b2" if change >= 0 else "\u25bc"
+        sign = "+" if change >= 0 else ""
+
+        if price >= 10000:
+            price_str = f"${price:,.0f}"
+        elif price >= 1:
+            price_str = f"${price:,.2f}"
+        else:
+            price_str = f"${price:.4f}"
+
+        items_html += (
+            f'<span class="ti">'
+            f'<span class="ts">{symbol}</span>'
+            f'<span class="tp">{price_str}</span>'
+            f'<span class="tc" style="color:{color}">{arrow} {sign}{change:.2%}</span>'
+            f'</span>'
+        )
+
+    ticker_html = f"""<!DOCTYPE html>
+<html><head><style>
+*{{margin:0;padding:0;box-sizing:border-box}}
+body{{background:#0a0e1a;overflow:hidden;font-family:'Segoe UI',Consolas,monospace}}
+@keyframes scroll{{0%{{transform:translateX(0)}}100%{{transform:translateX(-50%)}}}}
+.tw{{background:linear-gradient(90deg,#0a0e1a,#111827 20%,#111827 80%,#0a0e1a);
+border-top:1px solid #1e3a5f;border-bottom:1px solid #1e3a5f;overflow:hidden;padding:8px 0;position:relative}}
+.tw::before,.tw::after{{content:'';position:absolute;top:0;bottom:0;width:40px;z-index:2;pointer-events:none}}
+.tw::before{{left:0;background:linear-gradient(90deg,#0a0e1a,transparent)}}
+.tw::after{{right:0;background:linear-gradient(90deg,transparent,#0a0e1a)}}
+.tt{{display:flex;align-items:center;animation:scroll 40s linear infinite;width:max-content}}
+.tw:hover .tt{{animation-play-state:paused}}
+.ti{{display:inline-flex;align-items:center;gap:5px;margin:0 18px;white-space:nowrap}}
+.ts{{color:#8892b0;font-weight:800;font-size:11px;letter-spacing:1px}}
+.tp{{color:#e6e6e6;font-weight:600;font-size:12px}}
+.tc{{font-weight:700;font-size:11px}}
+.sep{{color:#1e3a5f;margin:0 4px;font-size:10px}}
+</style></head><body>
+<div class="tw"><div class="tt">{items_html}{items_html}</div></div>
+</body></html>"""
+
+    components.html(ticker_html, height=38, scrolling=False)
+
+
+def render_brand_bar() -> None:
+    """Render the 'From the Mind of Brandon Haston' brand bar."""
+    st.markdown(
+        '<div style="text-align:center;padding:6px 0 2px;margin-bottom:8px">'
+        '<span style="color:#3a5a7a;font-size:10px;letter-spacing:4px;'
+        "font-style:italic;font-family:'Segoe UI',sans-serif;"
+        'text-transform:uppercase">'
+        'from the mind of Brandon Haston'
+        '</span></div>',
+        unsafe_allow_html=True,
+    )
 
 
 def forecast_card(forecast: dict, horizon: str) -> None:

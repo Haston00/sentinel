@@ -46,6 +46,7 @@ import streamlit as st
 import streamlit.components.v1 as components
 
 from config.settings import COLORS, STREAMLIT_LAYOUT, STREAMLIT_PAGE_ICON, STREAMLIT_PAGE_TITLE
+from dashboard.components.widgets import render_ticker_bar, render_brand_bar
 
 # ── Page Config (must be first Streamlit call) ────────────────
 st.set_page_config(
@@ -231,6 +232,46 @@ if "initialized" not in st.session_state:
     time.sleep(10)
     st.session_state["initialized"] = True
     st.rerun()
+
+# ── Scrolling Stock Ticker ─────────────────────────────────────
+TICKER_SYMBOLS = {
+    "SPY": "S&P 500", "QQQ": "NASDAQ", "DIA": "DOW", "IWM": "RUSSELL",
+    "AAPL": "AAPL", "MSFT": "MSFT", "NVDA": "NVDA", "TSLA": "TSLA",
+    "AMZN": "AMZN", "META": "META", "GOOGL": "GOOGL",
+    "BTC-USD": "BTC", "ETH-USD": "ETH", "SOL-USD": "SOL",
+    "GLD": "GOLD", "^VIX": "VIX",
+}
+
+
+@st.cache_data(ttl=300, show_spinner=False)
+def _fetch_ticker_bar_data() -> list:
+    """Fetch latest prices for the scrolling ticker (5-min cache)."""
+    try:
+        import yfinance as yf
+        tickers = list(TICKER_SYMBOLS.keys())
+        data = yf.download(tickers, period="5d", group_by="ticker", progress=False)
+        results = []
+        for t in tickers:
+            try:
+                close = data[t]["Close"].dropna()
+                if len(close) >= 2:
+                    price = float(close.iloc[-1])
+                    change = float(close.iloc[-1] / close.iloc[-2] - 1)
+                    results.append({
+                        "symbol": TICKER_SYMBOLS[t],
+                        "price": price,
+                        "change": change,
+                    })
+            except Exception:
+                pass
+        return results
+    except Exception:
+        return []
+
+
+ticker_data = _fetch_ticker_bar_data()
+render_ticker_bar(ticker_data)
+render_brand_bar()
 
 # ── Navigation ────────────────────────────────────────────────
 primary = COLORS["primary"]
