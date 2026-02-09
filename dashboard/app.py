@@ -217,8 +217,29 @@ if "initialized" not in st.session_state:
     st.session_state["initialized"] = True
     st.rerun()
 
-# ── Sidebar ───────────────────────────────────────────────────
+# ── Navigation ────────────────────────────────────────────────
 primary = COLORS["primary"]
+PAGES = [
+    "Genius Briefing",
+    "Deep Analysis",
+    "AI Forecast",
+    "Probability Forecast",
+    "Signal Intelligence",
+    "Alpha Screener",
+    "Market Overview",
+    "Intermarket",
+    "Rotation & Breadth",
+    "Sector Analysis",
+    "Stock Explorer",
+    "Crypto",
+    "News Intelligence",
+    "Regime Monitor",
+    "Backtesting",
+    "Academy",
+    "Home",
+]
+
+# Sidebar (desktop)
 with st.sidebar:
     st.markdown(
         f"""
@@ -229,36 +250,22 @@ with st.sidebar:
         """,
         unsafe_allow_html=True,
     )
-
     st.markdown("---")
-
-    page = st.radio(
-        "Navigation",
-        [
-            "Genius Briefing",
-            "Deep Analysis",
-            "AI Forecast",
-            "Probability Forecast",
-            "Signal Intelligence",
-            "Alpha Screener",
-            "Market Overview",
-            "Intermarket",
-            "Rotation & Breadth",
-            "Sector Analysis",
-            "Stock Explorer",
-            "Crypto",
-            "News Intelligence",
-            "Regime Monitor",
-            "Backtesting",
-            "Academy",
-            "Home",
-        ],
-        label_visibility="collapsed",
-    )
-
+    sidebar_page = st.radio("Navigation", PAGES, label_visibility="collapsed")
     st.markdown("---")
     st.caption("SENTINEL v1.0")
     st.caption("Data: Yahoo Finance, CoinGecko, FRED, GDELT")
+
+# Top nav dropdown (always visible — essential for mobile)
+top_page = st.selectbox(
+    "Navigate",
+    PAGES,
+    index=PAGES.index(sidebar_page),
+    label_visibility="collapsed",
+)
+
+# Use whichever was changed last
+page = top_page
 
 # ── Page Router ───────────────────────────────────────────────
 if page == "Genius Briefing":
