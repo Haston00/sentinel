@@ -174,16 +174,19 @@ def _interpret_score(score, name, result=None):
     sma_text = " and ".join(sma_parts) if sma_parts else ""
 
     # Build signal detail — pick the 2 most notable signals
-    sig_details = []
-    for sig_name, sig_val in signals.items():
-        if isinstance(sig_val, dict):
-            direction = sig_val.get("direction", "")
-            if direction in ("BULLISH", "BEARISH"):
-                sig_details.append((sig_name.replace("_", " ").title(), direction.lower()))
     sig_text = ""
-    if sig_details:
-        top_sigs = sig_details[:2]
-        sig_text = " Signals: " + ", ".join([f"{n} is {d}" for n, d in top_sigs]) + "."
+    if isinstance(signals, list) and signals:
+        top_sigs = signals[:2]
+        sig_text = " Signals: " + "; ".join(top_sigs) + "."
+    elif isinstance(signals, dict):
+        sig_details = []
+        for sig_name, sig_val in signals.items():
+            if isinstance(sig_val, dict):
+                direction = sig_val.get("direction", "")
+                if direction in ("BULLISH", "BEARISH"):
+                    sig_details.append((sig_name.replace("_", " ").title(), direction.lower()))
+        if sig_details:
+            sig_text = " Signals: " + ", ".join([f"{n} is {d}" for n, d in sig_details[:2]]) + "."
 
     # Day direction word
     if day_chg > 1:
