@@ -293,6 +293,7 @@ PAGES = [
     "Backtesting",
     "Academy",
     "Learning Engine",
+    "Pattern Memory",
     "Home",
 ]
 
@@ -378,6 +379,9 @@ elif page == "Academy":
     render()
 elif page == "Learning Engine":
     from dashboard.views.p17_learning import render
+    render()
+elif page == "Pattern Memory":
+    from dashboard.views.p18_pattern_memory import render
     render()
 elif page == "Home":
     show_radar()
