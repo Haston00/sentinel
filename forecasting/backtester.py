@@ -2,6 +2,7 @@
 SENTINEL — Walk-forward backtesting engine.
 Tests forecast models on historical data with no lookahead bias.
 """
+from __future__ import annotations
 
 import numpy as np
 import pandas as pd

@@ -3,6 +3,7 @@ SENTINEL — Composite Signal Scoring Engine.
 Combines technical, momentum, volume, trend, and macro signals into a single
 0-100 conviction score for any asset. Higher = more bullish.
 """
+from __future__ import annotations
 
 import numpy as np
 import pandas as pd

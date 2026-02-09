@@ -2,6 +2,7 @@
 SENTINEL — Technical analysis feature engineering.
 Uses the `ta` library to compute 20+ indicators from OHLCV data.
 """
+from __future__ import annotations
 
 import pandas as pd
 import ta

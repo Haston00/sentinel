@@ -2,6 +2,7 @@
 SENTINEL — Reddit sentiment data collection.
 Monitors financial subreddits for market sentiment signals.
 """
+from __future__ import annotations
 
 import pandas as pd
 

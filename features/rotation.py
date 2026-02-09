@@ -3,6 +3,7 @@ SENTINEL — Sector Rotation Model.
 Maps current economic cycle position and predicts which sectors lead next.
 Based on the classic economic cycle framework + momentum confirmation.
 """
+from __future__ import annotations
 
 import numpy as np
 import pandas as pd

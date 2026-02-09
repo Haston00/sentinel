@@ -2,6 +2,7 @@
 SENTINEL — Asset universe definitions.
 GICS sectors, crypto universe, macro indicator catalog, benchmark tickers.
 """
+from __future__ import annotations
 
 # ── GICS Sectors with ETF Proxies and Top Holdings ────────────
 SECTORS = {

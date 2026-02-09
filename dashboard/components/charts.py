@@ -2,6 +2,7 @@
 SENTINEL — Reusable Plotly chart components.
 Consistent styling across the dashboard.
 """
+from __future__ import annotations
 
 import numpy as np
 import pandas as pd

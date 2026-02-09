@@ -2,6 +2,7 @@
 SENTINEL — SEC EDGAR filings monitor.
 Watches for significant filings (10-K, 10-Q, 8-K, insider trades).
 """
+from __future__ import annotations
 
 import pandas as pd
 import requests
