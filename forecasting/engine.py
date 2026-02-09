@@ -28,12 +28,84 @@ log = get_logger("forecasting.engine")
 class ForecastEngine:
     """
     Master orchestrator that runs the full forecasting pipeline for any asset.
+    Now with integrated learning: every prediction is logged and scored against actuals.
     """
 
     def __init__(self):
         self.ensemble = AdaptiveEnsemble()
         self.regime_detector: RegimeDetector | None = None
         self._ml_models: dict[str, MLForecaster] = {}
+        self._tracker = None
+        self._optimizer = None
+
+    def _get_tracker(self):
+        """Lazy-load the prediction tracker."""
+        if self._tracker is None:
+            try:
+                from learning.prediction_tracker import PredictionTracker
+                self._tracker = PredictionTracker()
+            except Exception as e:
+                log.warning(f"Learning tracker unavailable: {e}")
+        return self._tracker
+
+    def _get_optimizer(self):
+        """Lazy-load the learning optimizer."""
+        if self._optimizer is None:
+            try:
+                from learning.optimizer import LearningOptimizer
+                self._optimizer = LearningOptimizer()
+            except Exception as e:
+                log.warning(f"Learning optimizer unavailable: {e}")
+        return self._optimizer
+
+    def _log_and_adjust(
+        self,
+        ticker: str,
+        asset_type: str,
+        forecast_results: dict,
+        regime: str,
+    ) -> dict:
+        """Log predictions and apply learned adjustments."""
+        tracker = self._get_tracker()
+        optimizer = self._get_optimizer()
+
+        for horizon_name, fc in forecast_results.items():
+            horizon_days = HORIZONS.get(horizon_name, 21)
+
+            # Apply learned bias correction
+            if optimizer:
+                bias_adj = optimizer.get_bias_correction(asset_type, horizon_name)
+                if abs(bias_adj) > 1e-8:
+                    fc["point"] = round(fc["point"] + bias_adj, 6)
+                    fc["bias_correction_applied"] = round(bias_adj, 6)
+
+                # Apply learned confidence calibration
+                raw_conf = fc.get("confidence", 0.5)
+                fc["confidence"] = optimizer.get_adjusted_confidence(raw_conf, regime)
+                if abs(fc["confidence"] - raw_conf) > 0.01:
+                    fc["confidence_raw"] = round(raw_conf, 4)
+
+            # Log the prediction
+            if tracker:
+                try:
+                    pred_id = tracker.log_prediction(
+                        asset_ticker=ticker,
+                        asset_type=asset_type,
+                        horizon=horizon_name,
+                        horizon_days=horizon_days,
+                        predicted_direction=fc.get("direction", 0),
+                        predicted_return=fc.get("point", 0),
+                        predicted_lower=fc.get("lower", 0),
+                        predicted_upper=fc.get("upper", 0),
+                        confidence=fc.get("confidence", 0.5),
+                        regime=regime,
+                        n_models=fc.get("n_models", 0),
+                    )
+                    fc["prediction_id"] = pred_id
+                except Exception as e:
+                    log.warning(f"Failed to log prediction: {e}")
+
+        return forecast_results
 
     def _load_regime_detector(self, asset_type: str = "equity") -> RegimeDetector:
         """Load or build regime detector."""
@@ -207,6 +279,11 @@ class ForecastEngine:
             tech_features=tech_features,
         )
 
+        # 9. Log predictions and apply learned adjustments
+        forecast_results = self._log_and_adjust(
+            ticker, "equity", forecast_results, current_regime
+        )
+
         return {
             "ticker": ticker,
             "asset_type": "equity",
@@ -292,6 +369,11 @@ class ForecastEngine:
                     model_forecasts, regime=regime_info["regime"]
                 )
                 forecast_results[horizon_name] = combined
+
+        # Log predictions and apply learned adjustments
+        forecast_results = self._log_and_adjust(
+            symbol, "crypto", forecast_results, regime_info["regime"]
+        )
 
         return {
             "ticker": symbol,
