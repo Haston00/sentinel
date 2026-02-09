@@ -62,7 +62,11 @@ def _check_password():
     if st.session_state.get("authenticated"):
         return True
     pwd = st.text_input("Enter access code", type="password")
-    if pwd == st.secrets.get("APP_PASSWORD", "sentinel2026"):
+    try:
+        app_password = st.secrets["APP_PASSWORD"]
+    except Exception:
+        app_password = "sentinel2026"
+    if pwd == app_password:
         st.session_state["authenticated"] = True
         st.rerun()
     elif pwd:
