@@ -2,6 +2,7 @@
 SENTINEL — Crypto data pipeline.
 Fetches price, market cap, and volume data via CoinGecko free API.
 """
+from __future__ import annotations
 
 import time
 

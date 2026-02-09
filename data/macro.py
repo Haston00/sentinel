@@ -2,6 +2,7 @@
 SENTINEL — Macro economic data pipeline.
 Fetches indicators from FRED (Federal Reserve Economic Data).
 """
+from __future__ import annotations
 
 import pandas as pd
 

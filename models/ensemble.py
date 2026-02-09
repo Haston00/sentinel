@@ -2,6 +2,7 @@
 SENTINEL — Adaptive ensemble meta-learner.
 Combines forecasts from multiple model families, weighting by recent performance.
 """
+from __future__ import annotations
 
 import numpy as np
 import pandas as pd

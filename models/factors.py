@@ -2,6 +2,7 @@
 SENTINEL — Multi-factor model.
 Fama-French style factor analysis for sector and stock evaluation.
 """
+from __future__ import annotations
 
 import numpy as np
 import pandas as pd

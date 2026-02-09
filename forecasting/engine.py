@@ -2,6 +2,7 @@
 SENTINEL — Master forecast engine.
 Orchestrates: data → features → regime detection → model ensemble → news adjustment → output.
 """
+from __future__ import annotations
 
 import numpy as np
 import pandas as pd

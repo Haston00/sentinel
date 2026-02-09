@@ -2,6 +2,7 @@
 SENTINEL — Stock data pipeline.
 Fetches OHLCV + fundamental data via yfinance, with Parquet caching.
 """
+from __future__ import annotations
 
 import pandas as pd
 import yfinance as yf
