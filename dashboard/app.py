@@ -55,6 +55,21 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
+# ── Password Gate ─────────────────────────────────────────────
+def _check_password():
+    """Block access unless correct password is entered."""
+    if st.session_state.get("authenticated"):
+        return True
+    pwd = st.text_input("Enter access code", type="password")
+    if pwd == st.secrets.get("APP_PASSWORD", "sentinel2026"):
+        st.session_state["authenticated"] = True
+        st.rerun()
+    elif pwd:
+        st.error("Wrong code")
+    st.stop()
+
+_check_password()
+
 # ── Custom CSS ────────────────────────────────────────────────
 bg = COLORS["background"]
 surface = COLORS["surface"]
