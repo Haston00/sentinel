@@ -257,11 +257,14 @@ with st.sidebar:
     st.caption("Data: Yahoo Finance, CoinGecko, FRED, GDELT")
 
 # Top nav dropdown (always visible — essential for mobile)
+st.markdown(
+    f"<p style='color:{primary};font-weight:700;font-size:13px;margin-bottom:-10px'>NAVIGATE</p>",
+    unsafe_allow_html=True,
+)
 top_page = st.selectbox(
     "Navigate",
     PAGES,
     index=PAGES.index(sidebar_page),
-    label_visibility="collapsed",
 )
 
 # Use whichever was changed last
