@@ -65,7 +65,7 @@ def _check_password():
     try:
         app_password = st.secrets["APP_PASSWORD"]
     except Exception:
-        app_password = "sentinel2026"
+        app_password = "ExtremeOwnership"
     if pwd == app_password:
         st.session_state["authenticated"] = True
         st.rerun()
