@@ -271,19 +271,19 @@ with st.sidebar:
     st.caption("SENTINEL v1.0")
     st.caption("Data: Yahoo Finance, CoinGecko, FRED, GDELT")
 
-# Top nav dropdown (always visible — essential for mobile)
+# Top nav bar (always visible — essential for mobile)
 st.markdown(
-    f"<p style='color:{primary};font-weight:700;font-size:13px;margin-bottom:-10px'>NAVIGATE</p>",
+    f"<div style='background:{surface};padding:10px 15px;border-radius:8px;border:1px solid {primary};margin-bottom:10px'>"
+    f"<span style='color:{primary};font-weight:700;font-size:14px'>SENTINEL</span>"
+    f"<span style='color:#888;font-size:12px;margin-left:10px'>Select a page below</span>"
+    f"</div>",
     unsafe_allow_html=True,
 )
-top_page = st.selectbox(
-    "Navigate",
+page = st.selectbox(
+    "Go to",
     PAGES,
     index=PAGES.index(sidebar_page),
 )
-
-# Use whichever was changed last
-page = top_page
 
 # ── Page Router ───────────────────────────────────────────────
 if page == "Genius Briefing":
