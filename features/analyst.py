@@ -7,6 +7,8 @@ Tells you exactly what is happening, why, and what to do about it.
 
 import pandas as pd
 import numpy as np
+from datetime import datetime
+from zoneinfo import ZoneInfo
 from typing import Optional
 
 from config.assets import SECTORS, BENCHMARKS, BOND_TICKERS, COMMODITY_TICKERS, DOLLAR_TICKER
@@ -60,20 +62,104 @@ def _score_asset(ticker):
     }
 
 
-def _interpret_score(score, name):
-    """Turn a 0-100 score into plain English anyone can understand."""
-    if score >= 75:
-        return f"{name} is doing really well right now. Prices are going up, more people are buying than selling, and the trend is strong. This is one of the healthiest areas of the market."
-    elif score >= 60:
-        return f"{name} is in good shape. Prices are trending up and things look stable. Not amazing, but solid — like a B+ on a report card."
-    elif score >= 50:
-        return f"{name} is just OK. Not really going up or down with any conviction. It is sitting in the middle and could go either way from here."
-    elif score >= 40:
-        return f"{name} is starting to struggle. Prices are drifting lower and the energy behind this sector is fading. Not a disaster, but heading in the wrong direction."
-    elif score >= 30:
-        return f"{name} is doing poorly. Most of the signals say prices want to keep going down. This is an area of the market you probably want to avoid right now."
+def _interpret_score(score, name, result=None):
+    """Turn a 0-100 score into plain English using actual market data."""
+    if result is None:
+        result = {}
+
+    price = result.get("price", 0)
+    day_chg = result.get("day_change", 0)
+    ret_1w = result.get("ret_1w", 0)
+    ret_1m = result.get("ret_1m", 0)
+    above_50 = result.get("above_50_sma", None)
+    above_200 = result.get("above_200_sma", None)
+    signals = result.get("signals", {})
+
+    # Build SMA context
+    sma_parts = []
+    if above_200 is True:
+        sma_parts.append("trading above its 200-day moving average")
+    elif above_200 is False:
+        sma_parts.append("below its 200-day moving average")
+    if above_50 is True:
+        sma_parts.append("above the 50-day")
+    elif above_50 is False:
+        sma_parts.append("below the 50-day")
+    sma_text = " and ".join(sma_parts) if sma_parts else ""
+
+    # Build signal detail — pick the 2 most notable signals
+    sig_details = []
+    for sig_name, sig_val in signals.items():
+        if isinstance(sig_val, dict):
+            direction = sig_val.get("direction", "")
+            if direction in ("BULLISH", "BEARISH"):
+                sig_details.append((sig_name.replace("_", " ").title(), direction.lower()))
+    sig_text = ""
+    if sig_details:
+        top_sigs = sig_details[:2]
+        sig_text = " Signals: " + ", ".join([f"{n} is {d}" for n, d in top_sigs]) + "."
+
+    # Day direction word
+    if day_chg > 1:
+        day_word = f"up {day_chg:+.1f}% today"
+    elif day_chg > 0:
+        day_word = f"slightly green at {day_chg:+.1f}% today"
+    elif day_chg > -1:
+        day_word = f"slightly red at {day_chg:+.1f}% today"
     else:
-        return f"{name} is getting hit hard. Prices are falling, sellers are in control, and there is no sign of a turnaround yet. One of the weakest spots in the market."
+        day_word = f"down {day_chg:+.1f}% today"
+
+    # 1-month direction
+    if ret_1m > 5:
+        month_word = f"up {ret_1m:+.1f}% over the last month"
+    elif ret_1m > 0:
+        month_word = f"gained {ret_1m:+.1f}% this past month"
+    elif ret_1m > -5:
+        month_word = f"lost {ret_1m:+.1f}% this past month"
+    else:
+        month_word = f"dropped {ret_1m:+.1f}% over the last month"
+
+    if score >= 75:
+        return (
+            f"{name} scores {score:.0f}/100 — one of the strongest areas right now. "
+            f"It is {day_word}, {month_word}, and {sma_text if sma_text else 'trending well'}. "
+            f"Buyers are in control and momentum is strong.{sig_text}"
+        )
+    elif score >= 60:
+        return (
+            f"{name} scores {score:.0f}/100 — in solid shape. "
+            f"It is {day_word} and {month_word}. "
+            f"{'Price is ' + sma_text + '.' if sma_text else ''} "
+            f"Not the hottest area, but the trend is working.{sig_text}"
+        )
+    elif score >= 50:
+        return (
+            f"{name} scores {score:.0f}/100 — right in the middle. "
+            f"It is {day_word}, {month_word}. "
+            f"{'Currently ' + sma_text + '.' if sma_text else ''} "
+            f"Could go either way from here — no strong edge.{sig_text}"
+        )
+    elif score >= 40:
+        return (
+            f"{name} scores {score:.0f}/100 — starting to struggle. "
+            f"It is {day_word} and has {month_word}. "
+            f"{'Price is ' + sma_text + ' — not ideal.' if sma_text else ''}"
+            f"{sig_text} Momentum is fading."
+        )
+    elif score >= 30:
+        return (
+            f"{name} scores {score:.0f}/100 — weak. "
+            f"It is {day_word}, {month_word}. "
+            f"{'Sitting ' + sma_text + '.' if sma_text else ''} "
+            f"Most signals point down.{sig_text} Probably best to avoid."
+        )
+    else:
+        return (
+            f"{name} scores only {score:.0f}/100 — one of the weakest spots. "
+            f"It is {day_word}, {month_word}. "
+            f"{'Well ' + sma_text + '.' if sma_text else ''} "
+            f"Sellers are in control with no sign of a turnaround.{sig_text}"
+        )
 
 
 def generate_market_briefing() -> dict:
@@ -99,6 +185,7 @@ def generate_market_briefing() -> dict:
         "action_items": [],
         "watch_list": [],
         "bottom_line": "",
+        "timestamp": datetime.now(ZoneInfo("America/New_York")).strftime("%I:%M %p ET — %b %d, %Y"),
     }
 
     # ══════════════════════════════════════════════════════════════
@@ -125,7 +212,7 @@ def generate_market_briefing() -> dict:
         etf = info["etf"]
         result = _score_asset(etf)
         if result:
-            interpretation = _interpret_score(result["score"], sector_name)
+            interpretation = _interpret_score(result["score"], sector_name, result)
             sector_data[sector_name] = result
             briefing["sector_scores"][sector_name] = {
                 "etf": etf,
@@ -169,7 +256,7 @@ def generate_market_briefing() -> dict:
                 "day_change": result["day_change"],
                 "ret_1w": result["ret_1w"],
                 "ret_1m": result["ret_1m"],
-                "interpretation": _interpret_score(result["score"], label.split("(")[0].strip()),
+                "interpretation": _interpret_score(result["score"], label.split("(")[0].strip(), result),
             }
 
     # ══════════════════════════════════════════════════════════════
@@ -528,14 +615,17 @@ def _build_takeaways(bench_data, sector_data, inter_signals, divergences,
     spy = bench_data.get("S&P 500", {})
     if spy:
         score = spy.get("score", 50)
+        spy_day = spy.get("day_change", 0)
+        spy_1w = spy.get("ret_1w", 0)
+        spy_1m = spy.get("ret_1m", 0)
         if score >= 60:
-            takeaways.append(f"The overall market (S&P 500) scores {score:.0f} out of 100 — that is healthy. Prices are generally going up and the trend looks good.")
+            takeaways.append(f"The S&P 500 scores {score:.0f}/100 — healthy. It is {spy_day:+.1f}% today, {spy_1w:+.1f}% this week, and {spy_1m:+.1f}% over the past month. The trend is working.")
         elif score >= 50:
-            takeaways.append(f"The overall market scores {score:.0f}/100 — slightly positive but nothing exciting. It could go either way from here.")
+            takeaways.append(f"The S&P 500 scores {score:.0f}/100 — slightly positive. Today it is {spy_day:+.1f}%, this week {spy_1w:+.1f}%. Not exciting but not scary.")
         elif score >= 40:
-            takeaways.append(f"The overall market scores {score:.0f}/100 — that is below average. The market is not giving a clear signal right now.")
+            takeaways.append(f"The S&P 500 scores {score:.0f}/100 — below average. It is {spy_day:+.1f}% today and {spy_1w:+.1f}% this week. No clear direction.")
         else:
-            takeaways.append(f"The overall market scores {score:.0f}/100 — that is weak. More stocks are going down than up. Be careful.")
+            takeaways.append(f"The S&P 500 scores {score:.0f}/100 — weak. It is {spy_day:+.1f}% today, {spy_1w:+.1f}% this week, {spy_1m:+.1f}% this month. More stocks are going down than up.")
 
     # 2. Sector leadership/rotation
     if sector_data:
