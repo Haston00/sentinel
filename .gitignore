@@ -17,12 +17,15 @@ models/saved/
 *.env
 .streamlit/secrets.toml
 
-# Windows
+# Windows / local-only scripts
 *.ico
 *.bat
 *.ps1
 Thumbs.db
 Desktop.ini
+setup_apis.py
+test_apis.py
+create_icon.py
 
 # IDE
 .vscode/

@@ -13,7 +13,7 @@ from features.forecaster import generate_forecasts
 
 def render():
     st.title("Probability Forecast Engine")
-    st.caption("Real probability-weighted forecasts based on 14 institutional trading rules")
+    st.caption("Real probability-weighted forecasts based on 18 institutional trading rules")
 
     surface = COLORS["surface"]
     text_color = COLORS["text"]
@@ -242,8 +242,11 @@ def render():
     bear_weight = sum(r["weight"] for r in bearish_rules)
     total_weight = bull_weight + bear_weight if (bull_weight + bear_weight) > 0 else 1
 
-    bull_pct = (bull_weight / total_weight) * 100
-    bear_pct = (bear_weight / total_weight) * 100
+    # Use the actual probability from the 1-month forecast for the scorecard
+    # This prevents the misleading 100%/0% when only one side has rules
+    fc_1m_prob = forecasts["forecast_1m"].get("probability", 50)
+    bull_pct = fc_1m_prob
+    bear_pct = 100 - fc_1m_prob
 
     fig = go.Figure()
     fig.add_trace(go.Bar(

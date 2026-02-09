@@ -171,6 +171,58 @@ class RegimeDetector:
         probs = self.model.predict_proba(X)
         return states, probs, obs_df.index
 
+    # ── Current regime query ─────────────────────────────────
+
+    def current_regime(self, close_or_df, vix=None):
+        """Return current regime dict from already-trained model.
+
+        Accepts either a Close price Series or a full OHLCV DataFrame.
+        If the model is already trained, uses stored observations for
+        prediction (avoids re-building features from scratch).
+        """
+        if self.model is None:
+            return {
+                "regime": "UNKNOWN", "confidence": 0,
+                "probabilities": {}, "color": "#888",
+                "description": "Model not trained",
+            }
+
+        states, probs, idx = self.predict()
+        probs = _temper_probabilities(probs, temperature=2.0, floor=0.03)
+
+        current_state = states[-1]
+        label = self._labels.get(current_state, {
+            "name": "UNKNOWN", "color": "#888",
+            "description": "Unknown state",
+        })
+        current_probs = probs[-1]
+
+        prob_dict = {}
+        for snum, info in self._labels.items():
+            prob_dict[info["name"]] = {
+                "probability": float(current_probs[snum]) * 100,
+                "color": info["color"],
+            }
+
+        # Streak
+        streak = 0
+        for s in reversed(states):
+            if s == current_state:
+                streak += 1
+            else:
+                break
+
+        conf = float(current_probs[current_state]) * 100
+
+        return {
+            "regime": label["name"],
+            "confidence": conf,
+            "description": label["description"],
+            "color": label["color"],
+            "probabilities": prob_dict,
+            "streak_days": streak,
+        }
+
     # ── Persistence ───────────────────────────────────────────
 
     def save(self, path=MODEL_PATH):
