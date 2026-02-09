@@ -273,6 +273,16 @@ ticker_data = _fetch_ticker_bar_data()
 render_ticker_bar(ticker_data)
 render_brand_bar()
 
+# ── Start Auto-Learning Scheduler (background) ───────────────
+if "scheduler_started" not in st.session_state:
+    try:
+        from learning.scheduler import get_scheduler
+        scheduler = get_scheduler()
+        scheduler.start_background()
+        st.session_state["scheduler_started"] = True
+    except Exception:
+        pass  # Non-critical — learning still works manually
+
 # ── Navigation ────────────────────────────────────────────────
 primary = COLORS["primary"]
 PAGES = [
@@ -294,6 +304,10 @@ PAGES = [
     "Academy",
     "Learning Engine",
     "Pattern Memory",
+    "Options Flow",
+    "Earnings Model",
+    "Vol Surface",
+    "Position Sizing & Risk",
     "Home",
 ]
 
@@ -382,6 +396,18 @@ elif page == "Learning Engine":
     render()
 elif page == "Pattern Memory":
     from dashboard.views.p18_pattern_memory import render
+    render()
+elif page == "Options Flow":
+    from dashboard.views.p19_options_flow import render
+    render()
+elif page == "Earnings Model":
+    from dashboard.views.p20_earnings import render
+    render()
+elif page == "Vol Surface":
+    from dashboard.views.p21_vol_surface import render
+    render()
+elif page == "Position Sizing & Risk":
+    from dashboard.views.p22_position_sizing import render
     render()
 elif page == "Home":
     show_radar()
