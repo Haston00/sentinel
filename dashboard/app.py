@@ -312,6 +312,7 @@ PAGES = [
     "Earnings Model",
     "Vol Surface",
     "Position Sizing & Risk",
+    "Paper Trading",
     "Home",
 ]
 
@@ -412,6 +413,9 @@ elif page == "Vol Surface":
     render()
 elif page == "Position Sizing & Risk":
     from dashboard.views.p22_position_sizing import render
+    render()
+elif page == "Paper Trading":
+    from dashboard.views.p23_trading_sim import render
     render()
 elif page == "Home":
     show_radar()
