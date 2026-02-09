@@ -274,6 +274,7 @@ def generate_market_briefing() -> dict:
         "action_items": [],
         "watch_list": [],
         "bottom_line": "",
+        "market_drivers": [],
         "top_movers": {"high_flyers": [], "sinking_ships": []},
         "timestamp": datetime.now(ZoneInfo("America/New_York")).strftime("%I:%M %p ET — %b %d, %Y"),
     }
@@ -429,6 +430,15 @@ def generate_market_briefing() -> dict:
     # STEP 8: Headline
     # ══════════════════════════════════════════════════════════════
     briefing["headline"] = _build_headline(spy_score, qqq_score, health_score, regime, overall_inter, sector_data, briefing.get("crypto", {}))
+
+    # ══════════════════════════════════════════════════════════════
+    # STEP 8B: Market Drivers — WHAT is pushing the market right now
+    # ══════════════════════════════════════════════════════════════
+    briefing["market_drivers"] = _build_market_drivers(
+        bench_data, sector_data, inter_signals, inter_divergences,
+        breadth_summary, returns_1w, returns_1m, overall_inter,
+        briefing.get("asset_class_scores", {}), briefing.get("crypto", {}),
+    )
 
     # ══════════════════════════════════════════════════════════════
     # STEP 9: Takeaways (now much richer)
@@ -1034,6 +1044,310 @@ def _build_watchlist(inter_signals, divergences, breadth, ret_1m, sector_data, c
         })
 
     return watch
+
+
+def _build_market_drivers(bench_data, sector_data, inter_signals, divergences,
+                          breadth, returns_1w, returns_1m, overall_inter,
+                          asset_class_scores, crypto_data):
+    """
+    Identify what is ACTUALLY driving the market right now.
+    Returns a list of driver dicts: {direction, driver, detail, impact}
+    """
+    drivers = []
+
+    # ── 1. Which sectors are pulling the market and WHY ───────
+    if sector_data:
+        ranked = sorted(sector_data.items(), key=lambda x: x[1].get("score", 50), reverse=True)
+        top = ranked[0]
+        bot = ranked[-1]
+
+        # Leaders
+        top_name, top_d = top
+        top_day = top_d.get("day_change", 0)
+        top_1w = top_d.get("ret_1w", 0)
+        top_1m = top_d.get("ret_1m", 0)
+
+        # Sector-specific real-world drivers
+        sector_why = {
+            "Energy": "oil prices" if asset_class_scores.get("Oil (USO)", {}).get("ret_1w", 0) > 0 else "energy demand",
+            "Technology": "AI spending and tech earnings",
+            "Financials": "interest rate expectations and bank earnings",
+            "Healthcare": "pharma pipelines and defensive demand",
+            "Consumer Discretionary": "consumer spending data",
+            "Consumer Staples": "defensive rotation — investors want safety",
+            "Industrials": "manufacturing data and infrastructure spending",
+            "Materials": "commodity prices and global demand",
+            "Utilities": "rate cut expectations and safety demand",
+            "Real Estate": "interest rate outlook and housing data",
+            "Communication Services": "ad revenue and streaming growth",
+        }
+
+        why_top = sector_why.get(top_name, "strong momentum")
+        why_bot = sector_why.get(bot[0], "weak momentum")
+
+        drivers.append({
+            "direction": "BULLISH" if top_d.get("score", 50) >= 60 else "NEUTRAL",
+            "driver": f"{top_name} is leading the market",
+            "detail": (
+                f"{top_name} scores {top_d.get('score', 50):.0f}/100, {top_day:+.1f}% today, "
+                f"{top_1w:+.1f}% this week, {top_1m:+.1f}% this month. "
+                f"The driver: {why_top}."
+            ),
+            "impact": "HIGH",
+        })
+
+        bot_name, bot_d = bot
+        if bot_d.get("score", 50) < 45:
+            drivers.append({
+                "direction": "BEARISH",
+                "driver": f"{bot_name} is dragging the market down",
+                "detail": (
+                    f"{bot_name} scores only {bot_d.get('score', 50):.0f}/100, "
+                    f"{bot_d.get('day_change', 0):+.1f}% today, {bot_d.get('ret_1m', 0):+.1f}% this month. "
+                    f"The problem: {why_bot}."
+                ),
+                "impact": "HIGH",
+            })
+
+        # Offensive vs defensive — tells you what kind of market this is
+        offensive = ["Technology", "Consumer Discretionary", "Financials", "Industrials", "Communication Services"]
+        defensive = ["Utilities", "Healthcare", "Consumer Staples", "Real Estate"]
+        off_scores = [sector_data[s]["score"] for s in offensive if s in sector_data]
+        def_scores = [sector_data[s]["score"] for s in defensive if s in sector_data]
+        off_avg = np.mean(off_scores) if off_scores else 50
+        def_avg = np.mean(def_scores) if def_scores else 50
+
+        if off_avg > def_avg + 8:
+            drivers.append({
+                "direction": "BULLISH",
+                "driver": "Money is flowing into growth over safety",
+                "detail": (
+                    f"Growth sectors average {off_avg:.0f} vs defensive sectors at {def_avg:.0f}. "
+                    "Investors are betting on economic expansion — they want upside, not protection. "
+                    "This pattern typically shows up in the early-to-mid phase of a bull market."
+                ),
+                "impact": "MEDIUM",
+            })
+        elif def_avg > off_avg + 8:
+            drivers.append({
+                "direction": "BEARISH",
+                "driver": "Money is rotating into safe sectors",
+                "detail": (
+                    f"Defensive sectors average {def_avg:.0f} vs growth sectors at {off_avg:.0f}. "
+                    "Investors are quietly moving to safety — utilities, healthcare, staples. "
+                    "This rotation often precedes broader market weakness by 2-4 weeks."
+                ),
+                "impact": "HIGH",
+            })
+
+    # ── 2. Bond market — the smartest money in the room ───────
+    tlt_1w = returns_1w.get("TLT", 0)
+    tlt_1m = returns_1m.get("TLT", 0)
+    spy_1w = returns_1w.get("SPY", 0)
+    spy_1m = returns_1m.get("SPY", 0)
+
+    if isinstance(tlt_1w, (int, float)) and isinstance(spy_1w, (int, float)):
+        if tlt_1w > 0.01 and spy_1w > 0.01:
+            drivers.append({
+                "direction": "BULLISH",
+                "driver": "Both stocks and bonds are rising — rate cut hopes",
+                "detail": (
+                    f"Bonds (TLT) up {tlt_1w*100:+.1f}% this week while stocks (SPY) up {spy_1w*100:+.1f}%. "
+                    "When both rise together, the market is pricing in lower interest rates ahead. "
+                    "Investors believe the Fed will cut, which is good for both stocks and bonds."
+                ),
+                "impact": "HIGH",
+            })
+        elif tlt_1w > 0.01 and spy_1w < -0.01:
+            drivers.append({
+                "direction": "BEARISH",
+                "driver": "Flight to safety — bonds up, stocks down",
+                "detail": (
+                    f"Bonds (TLT) up {tlt_1w*100:+.1f}% while stocks (SPY) down {spy_1w*100:+.1f}% this week. "
+                    "Money is leaving stocks and rushing into government bonds. "
+                    "This is the classic fear trade — big investors are getting defensive."
+                ),
+                "impact": "HIGH",
+            })
+        elif tlt_1w < -0.01 and spy_1w > 0.01:
+            drivers.append({
+                "direction": "BULLISH",
+                "driver": "Stocks up, bonds down — confidence in growth",
+                "detail": (
+                    f"Stocks (SPY) up {spy_1w*100:+.1f}% while bonds (TLT) down {tlt_1w*100:+.1f}% this week. "
+                    "This is the normal healthy pattern — investors are selling safe bonds "
+                    "and putting that money into stocks because they believe the economy will keep growing."
+                ),
+                "impact": "MEDIUM",
+            })
+        elif tlt_1w < -0.01 and spy_1w < -0.01:
+            drivers.append({
+                "direction": "BEARISH",
+                "driver": "Everything is selling off — stocks AND bonds down",
+                "detail": (
+                    f"Both stocks ({spy_1w*100:+.1f}%) and bonds ({tlt_1w*100:+.1f}%) fell this week. "
+                    "When there is nowhere to hide, it usually means rising interest rates or inflation fears "
+                    "are pressuring all assets. This is one of the toughest environments for investors."
+                ),
+                "impact": "HIGH",
+            })
+
+    # ── 3. Gold — the fear gauge ──────────────────────────────
+    gld_1w = returns_1w.get("GLD", 0)
+    gld_1m = returns_1m.get("GLD", 0)
+    if isinstance(gld_1w, (int, float)) and gld_1w > 0.015:
+        drivers.append({
+            "direction": "BEARISH",
+            "driver": f"Gold is surging — up {gld_1w*100:+.1f}% this week",
+            "detail": (
+                f"Gold (GLD) gained {gld_1w*100:+.1f}% this week and {gld_1m*100:+.1f}% this month. "
+                "Rising gold means institutional investors are buying protection against uncertainty. "
+                "Could be inflation worries, geopolitical tension, or loss of confidence in central banks. "
+                "Whatever the reason, smart money is hedging."
+            ),
+            "impact": "MEDIUM",
+        })
+    elif isinstance(gld_1w, (int, float)) and gld_1w < -0.015:
+        drivers.append({
+            "direction": "BULLISH",
+            "driver": f"Gold is falling — investors do not need safety",
+            "detail": (
+                f"Gold (GLD) dropped {gld_1w*100:+.1f}% this week. "
+                "Falling gold means investors feel confident enough to sell their safety nets. "
+                "Money leaving gold usually flows into stocks and riskier assets."
+            ),
+            "impact": "LOW",
+        })
+
+    # ── 4. Dollar — global competitiveness ────────────────────
+    uup_1w = returns_1w.get("UUP", 0)
+    if isinstance(uup_1w, (int, float)) and abs(uup_1w) > 0.005:
+        if uup_1w > 0:
+            drivers.append({
+                "direction": "BEARISH",
+                "driver": f"Dollar is strengthening — headwind for stocks",
+                "detail": (
+                    f"The US dollar (UUP) is up {uup_1w*100:+.1f}% this week. "
+                    "A stronger dollar hurts US companies that sell overseas (about 40% of S&P 500 revenue). "
+                    "Tech giants like Apple, Microsoft, and Nvidia all earn heavily abroad. "
+                    "It also puts pressure on gold, commodities, and emerging markets."
+                ),
+                "impact": "MEDIUM",
+            })
+        else:
+            drivers.append({
+                "direction": "BULLISH",
+                "driver": f"Dollar is weakening — tailwind for stocks",
+                "detail": (
+                    f"The US dollar (UUP) is down {uup_1w*100:+.1f}% this week. "
+                    "A weaker dollar boosts earnings for US multinationals when they convert foreign revenue back to dollars. "
+                    "It also lifts gold, commodities, and international investments."
+                ),
+                "impact": "MEDIUM",
+            })
+
+    # ── 5. Oil — inflation driver ─────────────────────────────
+    uso_1w = returns_1w.get("USO", 0)
+    if isinstance(uso_1w, (int, float)) and abs(uso_1w) > 0.02:
+        if uso_1w > 0:
+            drivers.append({
+                "direction": "BEARISH",
+                "driver": f"Oil prices jumping — inflation risk",
+                "detail": (
+                    f"Oil (USO) is up {uso_1w*100:+.1f}% this week. "
+                    "Rising oil raises costs for everything — shipping, manufacturing, food, gas. "
+                    "Higher energy costs act like a tax on consumers and squeeze corporate margins. "
+                    "Energy stocks benefit but almost everything else gets hurt."
+                ),
+                "impact": "MEDIUM",
+            })
+        else:
+            drivers.append({
+                "direction": "BULLISH",
+                "driver": f"Oil prices falling — good for consumers",
+                "detail": (
+                    f"Oil (USO) is down {uso_1w*100:+.1f}% this week. "
+                    "Falling oil is like a tax cut for consumers — cheaper gas, cheaper shipping, lower food costs. "
+                    "Good for consumer discretionary, airlines, and retail. Bad for energy stocks."
+                ),
+                "impact": "MEDIUM",
+            })
+
+    # ── 6. Breadth divergence — hidden weakness or strength ───
+    pct_50 = breadth.get("pct_above_50ma", 50)
+    pct_200 = breadth.get("pct_above_200ma", 50)
+    health = breadth.get("health_score", 50)
+
+    spy_score = bench_data.get("S&P 500", {}).get("score", 50)
+    if spy_score >= 55 and pct_50 < 45:
+        drivers.append({
+            "direction": "BEARISH",
+            "driver": "Hidden weakness — indexes up but most stocks are not",
+            "detail": (
+                f"The S&P 500 scores {spy_score:.0f}/100 but only {pct_50:.0f}% of stocks are above their 50-day average. "
+                "This means a handful of big stocks are carrying the whole market. "
+                "When leadership narrows this much, the rally is fragile — one bad day in the mega-caps "
+                "and there is nothing underneath to catch the fall."
+            ),
+            "impact": "HIGH",
+        })
+    elif spy_score <= 45 and pct_50 > 55:
+        drivers.append({
+            "direction": "BULLISH",
+            "driver": "Hidden strength — breadth is better than the index",
+            "detail": (
+                f"The S&P 500 scores only {spy_score:.0f}/100 but {pct_50:.0f}% of stocks are in uptrends. "
+                "This means the average stock is doing better than the index suggests. "
+                "Improving breadth under a weak headline number is often the start of a new leg up."
+            ),
+            "impact": "MEDIUM",
+        })
+
+    # ── 7. Crypto risk appetite ───────────────────────────────
+    btc = crypto_data.get("BTC", {})
+    if btc:
+        btc_chg = btc.get("change_24h", 0)
+        if btc_chg > 3:
+            drivers.append({
+                "direction": "BULLISH",
+                "driver": f"Bitcoin surging {btc_chg:+.1f}% — risk appetite is strong",
+                "detail": (
+                    "Big up days in Bitcoin tend to correlate with risk-on sentiment across all markets. "
+                    "When crypto is ripping, it means traders are willing to take big bets — "
+                    "that confidence usually spills into stocks too."
+                ),
+                "impact": "LOW",
+            })
+        elif btc_chg < -3:
+            drivers.append({
+                "direction": "BEARISH",
+                "driver": f"Bitcoin dropping {btc_chg:+.1f}% — risk appetite is fading",
+                "detail": (
+                    "Sharp Bitcoin selloffs often signal broader risk aversion. "
+                    "Crypto tends to be the first domino — when it falls hard, "
+                    "growth stocks and other speculative assets often follow within 24-48 hours."
+                ),
+                "impact": "MEDIUM",
+            })
+
+    # ── 8. Divergences — the smart money warning ──────────────
+    if divergences:
+        drivers.append({
+            "direction": "BEARISH",
+            "driver": "Something does not add up in the data",
+            "detail": (
+                f"{divergences[0]} "
+                "When the surface looks fine but the internals tell a different story, "
+                "pay attention to the internals. They are usually right."
+            ),
+            "impact": "HIGH",
+        })
+
+    # Sort by impact: HIGH first
+    impact_order = {"HIGH": 0, "MEDIUM": 1, "LOW": 2}
+    drivers.sort(key=lambda x: impact_order.get(x.get("impact", "LOW"), 3))
+
+    return drivers
 
 
 def _build_bottom_line(spy_score, health_score, regime, overall_inter, sector_data, crypto_data):

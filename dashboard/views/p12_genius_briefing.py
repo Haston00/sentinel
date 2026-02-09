@@ -97,6 +97,54 @@ def render():
     )
 
     # ═══════════════════════════════════════════════════════════
+    # MARKET DRIVERS — What is pushing the market right now
+    # ═══════════════════════════════════════════════════════════
+    market_drivers = briefing.get("market_drivers", [])
+    if market_drivers:
+        st.subheader("What Is Driving The Market Right Now")
+        st.caption("The real forces behind today's moves — not just scores, but WHY")
+
+        for drv in market_drivers:
+            direction = drv.get("direction", "NEUTRAL")
+            impact = drv.get("impact", "LOW")
+
+            if direction == "BULLISH":
+                d_color = bull_color
+                d_icon = "▲"
+            elif direction == "BEARISH":
+                d_color = bear_color
+                d_icon = "▼"
+            else:
+                d_color = neutral_color
+                d_icon = "◆"
+
+            if impact == "HIGH":
+                imp_color = "#FF9800"
+                imp_label = "HIGH IMPACT"
+            elif impact == "MEDIUM":
+                imp_color = neutral_color
+                imp_label = "MEDIUM"
+            else:
+                imp_color = "#555"
+                imp_label = "LOW"
+
+            st.markdown(
+                f"<div style='background:{surface};padding:16px 20px;border-radius:10px;margin-bottom:10px;"
+                f"border-left:5px solid {d_color}'>"
+                f"<div style='display:flex;align-items:center;gap:10px;margin-bottom:8px;flex-wrap:wrap'>"
+                f"<span style='font-size:20px;color:{d_color}'>{d_icon}</span>"
+                f"<span style='font-size:15px;font-weight:700;color:{text_color}'>{drv.get('driver', '')}</span>"
+                f"<span style='background:{d_color};color:white;padding:2px 10px;border-radius:10px;font-size:10px;font-weight:600'>{direction}</span>"
+                f"<span style='background:{imp_color};color:white;padding:2px 8px;border-radius:10px;font-size:10px'>{imp_label}</span>"
+                f"</div>"
+                f"<p style='margin:0;color:{text_color};font-size:14px;line-height:1.7'>{drv.get('detail', '')}</p>"
+                f"</div>",
+                unsafe_allow_html=True,
+            )
+
+        st.markdown("")
+
+    # ═══════════════════════════════════════════════════════════
     # WHAT THE SCORE MEANS (explainer)
     # ═══════════════════════════════════════════════════════════
     with st.expander("What does the 0-100 score mean?", expanded=False):
