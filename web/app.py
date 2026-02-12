@@ -7,6 +7,7 @@ Launch: python -m web.app
 import os
 import sys
 import subprocess
+import threading
 from pathlib import Path
 
 from flask import Flask, render_template, request, redirect, url_for, session, jsonify
@@ -53,6 +54,25 @@ def dashboard(page="genius_briefing"):
 # ── Register API blueprint ────────────────────────────────────
 from web.api import api_bp
 app.register_blueprint(api_bp, url_prefix="/api")
+
+
+# ── Pre-warm briefing cache on startup ────────────────────────
+def _prewarm():
+    """Generate briefing in background so first visitor gets instant load."""
+    import time
+    time.sleep(5)  # Let gunicorn finish starting
+    try:
+        from web.api import _generate_briefing_with_news, _briefing_cache
+        import time as t
+        print("Pre-warming briefing cache...")
+        briefing = _generate_briefing_with_news()
+        _briefing_cache["data"] = briefing
+        _briefing_cache["timestamp"] = t.time()
+        print("Briefing cache warm.")
+    except Exception as e:
+        print(f"Pre-warm failed: {e}")
+
+threading.Thread(target=_prewarm, daemon=True).start()
 
 
 if __name__ == "__main__":

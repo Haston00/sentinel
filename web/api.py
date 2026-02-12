@@ -19,7 +19,7 @@ api_bp = Blueprint("api", __name__)
 
 # Briefing cache — avoids re-generating on every page load
 _briefing_cache = {"data": None, "timestamp": 0}
-BRIEFING_TTL = 600  # 10 minutes
+BRIEFING_TTL = 1800  # 30 minutes
 
 
 def _error(msg, status=500):
