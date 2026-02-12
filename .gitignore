@@ -11,6 +11,11 @@ data/cache/
 
 # Saved models (regenerated at runtime)
 models/saved/
+equity_regime
+
+# Runtime data (regenerated)
+learning/data/
+simulation/data/
 
 # Environment / secrets
 .env
@@ -26,6 +31,15 @@ Desktop.ini
 setup_apis.py
 test_apis.py
 create_icon.py
+
+# Debug / test scripts (local dev only)
+debug_api.py
+test_*.py
+flask_err.log
+nul
+
+# Old Streamlit dashboard (replaced by Flask web/)
+.streamlit/
 
 # IDE
 .vscode/

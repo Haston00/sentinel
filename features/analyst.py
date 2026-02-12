@@ -10,6 +10,7 @@ import numpy as np
 from datetime import datetime
 from zoneinfo import ZoneInfo
 from typing import Optional
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 from config.assets import SECTORS, BENCHMARKS, BOND_TICKERS, COMMODITY_TICKERS, DOLLAR_TICKER
 from data.stocks import fetch_ohlcv
@@ -280,41 +281,67 @@ def generate_market_briefing() -> dict:
     }
 
     # ══════════════════════════════════════════════════════════════
-    # STEP 1: Score the major benchmarks
-    # ══════════════════════════════════════════════════════════════
-    bench_data = {}
-    for name, ticker in BENCHMARKS.items():
-        result = _score_asset(ticker)
-        if result:
-            bench_data[name] = result
-            briefing["market_scores"][name] = {
-                "score": result["score"],
-                "label": result["label"],
-                "day_change": result["day_change"],
-                "ret_1w": result["ret_1w"],
-                "ret_1m": result["ret_1m"],
-            }
-
-    # ══════════════════════════════════════════════════════════════
-    # STEP 2: Score ALL 11 GICS sectors
+    # STEP 1-3: Score benchmarks + sectors + asset classes IN PARALLEL
     # ══════════════════════════════════════════════════════════════
     sector_data = {}
+    asset_map = {
+        "Long Bonds (TLT)": "TLT",
+        "High Yield (HYG)": "HYG",
+        "Inv Grade (LQD)": "LQD",
+        "Gold (GLD)": "GLD",
+        "Oil (USO)": "USO",
+        "Dollar (UUP)": "UUP",
+    }
+
+    # Build one job list: (category, name, ticker)
+    jobs = []
+    for name, ticker in BENCHMARKS.items():
+        jobs.append(("bench", name, ticker))
     for sector_name, info in SECTORS.items():
-        etf = info["etf"]
-        result = _score_asset(etf)
-        if result:
-            interpretation = _interpret_score(result["score"], sector_name, result)
-            sector_data[sector_name] = result
-            briefing["sector_scores"][sector_name] = {
-                "etf": etf,
-                "score": result["score"],
-                "label": result["label"],
+        jobs.append(("sector", sector_name, info["etf"]))
+    for label, ticker in asset_map.items():
+        jobs.append(("asset", label, ticker))
+
+    # Run all 22 scores in parallel (8 threads)
+    all_results = {}
+    with ThreadPoolExecutor(max_workers=8) as pool:
+        future_map = {pool.submit(_score_asset, ticker): (cat, name, ticker) for cat, name, ticker in jobs}
+        for future in as_completed(future_map):
+            cat, name, ticker = future_map[future]
+            try:
+                result = future.result()
+                if result:
+                    all_results[(cat, name, ticker)] = result
+            except Exception:
+                pass
+
+    # Unpack results
+    bench_data = {}
+    for (cat, name, ticker), result in all_results.items():
+        if cat == "bench":
+            bench_data[name] = result
+            briefing["market_scores"][name] = {
+                "score": result["score"], "label": result["label"],
                 "day_change": result["day_change"],
-                "ret_1w": result["ret_1w"],
-                "ret_1m": result["ret_1m"],
+                "ret_1w": result["ret_1w"], "ret_1m": result["ret_1m"],
+            }
+        elif cat == "sector":
+            interpretation = _interpret_score(result["score"], name, result)
+            sector_data[name] = result
+            briefing["sector_scores"][name] = {
+                "etf": ticker, "score": result["score"], "label": result["label"],
+                "day_change": result["day_change"],
+                "ret_1w": result["ret_1w"], "ret_1m": result["ret_1m"],
                 "above_50_sma": result["above_50_sma"],
                 "above_200_sma": result["above_200_sma"],
                 "interpretation": interpretation,
+            }
+        elif cat == "asset":
+            briefing["asset_class_scores"][name] = {
+                "ticker": ticker, "score": result["score"], "label": result["label"],
+                "price": result["price"], "day_change": result["day_change"],
+                "ret_1w": result["ret_1w"], "ret_1m": result["ret_1m"],
+                "interpretation": _interpret_score(result["score"], name.split("(")[0].strip(), result),
             }
 
     # Rank sectors best to worst
@@ -324,31 +351,6 @@ def generate_market_briefing() -> dict:
          "label": data["label"], "ret_1m": data["ret_1m"]}
         for i, (name, data) in enumerate(ranked)
     ]
-
-    # ══════════════════════════════════════════════════════════════
-    # STEP 3: Score bonds, gold, oil, dollar
-    # ══════════════════════════════════════════════════════════════
-    asset_map = {
-        "Long Bonds (TLT)": "TLT",
-        "High Yield (HYG)": "HYG",
-        "Inv Grade (LQD)": "LQD",
-        "Gold (GLD)": "GLD",
-        "Oil (USO)": "USO",
-        "Dollar (UUP)": "UUP",
-    }
-    for label, ticker in asset_map.items():
-        result = _score_asset(ticker)
-        if result:
-            briefing["asset_class_scores"][label] = {
-                "ticker": ticker,
-                "score": result["score"],
-                "label": result["label"],
-                "price": result["price"],
-                "day_change": result["day_change"],
-                "ret_1w": result["ret_1w"],
-                "ret_1m": result["ret_1m"],
-                "interpretation": _interpret_score(result["score"], label.split("(")[0].strip(), result),
-            }
 
     # ══════════════════════════════════════════════════════════════
     # STEP 4: Get crypto data
@@ -485,10 +487,21 @@ def generate_market_briefing() -> dict:
     )
 
     # ══════════════════════════════════════════════════════════════
-    # STEP 14: Top movers — high flyers and sinking ships
+    # STEP 14: Top movers — built from data we already have (no extra downloads)
     # ══════════════════════════════════════════════════════════════
     try:
-        briefing["top_movers"] = _get_top_movers()
+        all_movers = []
+        for name, result in {**bench_data, **sector_data}.items():
+            all_movers.append({"name": name, "day_change": result["day_change"], "price": result["price"]})
+        for sym, cdata in briefing.get("crypto", {}).items():
+            all_movers.append({"name": sym, "day_change": cdata.get("change_24h", 0), "price": cdata.get("price", 0)})
+        for label, adata in briefing.get("asset_class_scores", {}).items():
+            all_movers.append({"name": label.split("(")[0].strip(), "day_change": adata.get("day_change", 0), "price": adata.get("price", 0)})
+        all_movers.sort(key=lambda x: x["day_change"], reverse=True)
+        briefing["top_movers"] = {
+            "high_flyers": all_movers[:5],
+            "sinking_ships": list(reversed(all_movers[-5:])),
+        }
     except Exception as e:
         logger.warning(f"Top movers failed: {e}")
 

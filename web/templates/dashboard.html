@@ -1,0 +1,182 @@
+{% extends "base.html" %}
+
+{% block body %}
+<!-- Mobile sidebar toggle -->
+<button class="mobile-toggle" id="mobileToggle" onclick="toggleSidebar()">&#9776;</button>
+
+<!-- Sidebar -->
+<aside class="sidebar" id="sidebar">
+    <div class="sidebar-brand">
+        <h1>SENTINEL</h1>
+        <p>Market Intelligence</p>
+    </div>
+    <nav class="sidebar-nav" id="sidebarNav">
+        <!-- INTELLIGENCE -->
+        <div class="nav-group" data-group="intelligence">
+            <div class="nav-group-header" onclick="toggleGroup(this)">
+                <span>INTELLIGENCE</span>
+                <span class="chevron">&#9660;</span>
+            </div>
+            <div class="nav-group-items">
+                <a class="nav-item" data-page="market_overview" onclick="navigateTo('market_overview')">
+                    <span class="nav-icon">&#9632;</span> Market Overview
+                </a>
+                <a class="nav-item" data-page="genius_briefing" onclick="navigateTo('genius_briefing')">
+                    <span class="nav-icon">&#9733;</span> Genius Briefing
+                </a>
+                <a class="nav-item" data-page="macro_dashboard" onclick="navigateTo('macro_dashboard')">
+                    <span class="nav-icon">&#9650;</span> Macro Dashboard
+                </a>
+            </div>
+        </div>
+
+        <!-- FORECASTING -->
+        <div class="nav-group" data-group="forecasting">
+            <div class="nav-group-header" onclick="toggleGroup(this)">
+                <span>FORECASTING</span>
+                <span class="chevron">&#9660;</span>
+            </div>
+            <div class="nav-group-items">
+                <a class="nav-item" data-page="regime_monitor" onclick="navigateTo('regime_monitor')">
+                    <span class="nav-icon">&#9673;</span> Regime Monitor
+                </a>
+                <a class="nav-item" data-page="alpha_screener" onclick="navigateTo('alpha_screener')">
+                    <span class="nav-icon">&#9670;</span> Alpha Screener
+                </a>
+                <a class="nav-item" data-page="forecaster" onclick="navigateTo('forecaster')">
+                    <span class="nav-icon">&#8680;</span> Forecaster
+                </a>
+                <a class="nav-item" data-page="scenario_lab" onclick="navigateTo('scenario_lab')">
+                    <span class="nav-icon">&#9881;</span> Scenario Lab
+                </a>
+            </div>
+        </div>
+
+        <!-- MARKETS -->
+        <div class="nav-group" data-group="markets">
+            <div class="nav-group-header" onclick="toggleGroup(this)">
+                <span>MARKETS</span>
+                <span class="chevron">&#9660;</span>
+            </div>
+            <div class="nav-group-items">
+                <a class="nav-item" data-page="correlation_matrix" onclick="navigateTo('correlation_matrix')">
+                    <span class="nav-icon">&#9638;</span> Correlation Matrix
+                </a>
+                <a class="nav-item" data-page="sector_heatmap" onclick="navigateTo('sector_heatmap')">
+                    <span class="nav-icon">&#9641;</span> Sector Heatmap
+                </a>
+                <a class="nav-item" data-page="factor_explorer" onclick="navigateTo('factor_explorer')">
+                    <span class="nav-icon">&#9651;</span> Factor Explorer
+                </a>
+            </div>
+        </div>
+
+        <!-- CROSS-ASSET -->
+        <div class="nav-group" data-group="crossasset">
+            <div class="nav-group-header" onclick="toggleGroup(this)">
+                <span>CROSS-ASSET</span>
+                <span class="chevron">&#9660;</span>
+            </div>
+            <div class="nav-group-items">
+                <a class="nav-item" data-page="commodities" onclick="navigateTo('commodities')">
+                    <span class="nav-icon">&#9830;</span> Commodities
+                </a>
+                <a class="nav-item" data-page="crypto_dashboard" onclick="navigateTo('crypto_dashboard')">
+                    <span class="nav-icon">&#8383;</span> Crypto Dashboard
+                </a>
+                <a class="nav-item" data-page="fixed_income" onclick="navigateTo('fixed_income')">
+                    <span class="nav-icon">&#8477;</span> Fixed Income
+                </a>
+                <a class="nav-item" data-page="forex_dashboard" onclick="navigateTo('forex_dashboard')">
+                    <span class="nav-icon">&#164;</span> Forex Dashboard
+                </a>
+            </div>
+        </div>
+
+        <!-- TRADING -->
+        <div class="nav-group" data-group="trading">
+            <div class="nav-group-header" onclick="toggleGroup(this)">
+                <span>TRADING</span>
+                <span class="chevron">&#9660;</span>
+            </div>
+            <div class="nav-group-items">
+                <a class="nav-item" data-page="portfolio" onclick="navigateTo('portfolio')">
+                    <span class="nav-icon">&#9776;</span> Portfolio
+                </a>
+                <a class="nav-item" data-page="paper_trading" onclick="navigateTo('paper_trading')">
+                    <span class="nav-icon">&#9654;</span> Paper Trading
+                </a>
+                <a class="nav-item" data-page="risk_analytics" onclick="navigateTo('risk_analytics')">
+                    <span class="nav-icon">&#9888;</span> Risk Analytics
+                </a>
+            </div>
+        </div>
+
+        <!-- ADVANCED -->
+        <div class="nav-group" data-group="advanced">
+            <div class="nav-group-header" onclick="toggleGroup(this)">
+                <span>ADVANCED</span>
+                <span class="chevron">&#9660;</span>
+            </div>
+            <div class="nav-group-items">
+                <a class="nav-item" data-page="option_flow" onclick="navigateTo('option_flow')">
+                    <span class="nav-icon">&#10070;</span> Option Flow
+                </a>
+                <a class="nav-item" data-page="earnings_calendar" onclick="navigateTo('earnings_calendar')">
+                    <span class="nav-icon">&#9737;</span> Earnings Calendar
+                </a>
+                <a class="nav-item" data-page="insider_tracker" onclick="navigateTo('insider_tracker')">
+                    <span class="nav-icon">&#128065;</span> Insider Tracker
+                </a>
+                <a class="nav-item" data-page="dark_pool" onclick="navigateTo('dark_pool')">
+                    <span class="nav-icon">&#9679;</span> Dark Pool
+                </a>
+            </div>
+        </div>
+
+        <!-- SYSTEM -->
+        <div class="nav-group" data-group="system">
+            <div class="nav-group-header" onclick="toggleGroup(this)">
+                <span>SYSTEM</span>
+                <span class="chevron">&#9660;</span>
+            </div>
+            <div class="nav-group-items">
+                <a class="nav-item" data-page="learning_center" onclick="navigateTo('learning_center')">
+                    <span class="nav-icon">&#9733;</span> Learning Center
+                </a>
+                <a class="nav-item" data-page="settings" onclick="navigateTo('settings')">
+                    <span class="nav-icon">&#9881;</span> Settings
+                </a>
+            </div>
+        </div>
+    </nav>
+    <div class="sidebar-footer">
+        <div>SENTINEL v2.0 &mdash; Flask</div>
+        <div style="margin-top:4px;">Data: Yahoo Finance, CoinGecko, FRED</div>
+        <div style="margin-top:8px;">
+            <a href="/logout" style="color:var(--text-dim);text-decoration:none;font-size:10px;">LOGOUT</a>
+        </div>
+    </div>
+</aside>
+
+<!-- Main Content Area -->
+<main class="main-content" id="mainContent">
+    <div id="pageContent">
+        <div class="loading-overlay">
+            <div class="spinner"></div>
+            <span>Loading...</span>
+        </div>
+    </div>
+</main>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/charts.js') }}"></script>
+<script src="{{ url_for('static', filename='js/app.js') }}"></script>
+<script>
+    // Initialize with the active page from the server
+    document.addEventListener('DOMContentLoaded', function() {
+        navigateTo('{{ active_page }}');
+    });
+</script>
+{% endblock %}

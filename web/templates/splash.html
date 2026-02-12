@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SENTINEL — Market Intelligence</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background: #0a0e1a;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            overflow: hidden;
+            font-family: 'Segoe UI', Consolas, monospace;
+            text-align: center;
+            cursor: pointer;
+        }
+
+        @keyframes sweep { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        @keyframes fadeInUp { 0% { opacity: 0; transform: translateY(40px); } 100% { opacity: 1; transform: translateY(0); } }
+        @keyframes blink { 0%,100% { opacity: .15; } 50% { opacity: .85; } }
+        @keyframes glowPulse { 0%,100% { box-shadow: 0 0 10px #00ff64, 0 0 20px rgba(0,255,100,.3); } 50% { box-shadow: 0 0 20px #00ff64, 0 0 50px rgba(0,255,100,.5), 0 0 80px rgba(0,255,100,.2); } }
+        @keyframes expandRing { 0% { transform: translate(-50%,-50%) scale(.2); opacity: .8; } 100% { transform: translate(-50%,-50%) scale(2.5); opacity: 0; } }
+
+        /* Target contact flash — bright glow then fade to dim */
+        @keyframes contactFlash {
+            0% { opacity: 1; color: #00ff64; text-shadow: 0 0 15px #00ff64, 0 0 30px rgba(0,255,100,.6); transform: scale(1.3); }
+            15% { opacity: 1; color: #00ff64; text-shadow: 0 0 10px #00ff64, 0 0 20px rgba(0,255,100,.4); transform: scale(1); }
+            100% { opacity: .15; color: #00C853; text-shadow: 0 0 3px rgba(0,200,83,.2); transform: scale(1); }
+        }
+
+        .sc { display: flex; flex-direction: column; align-items: center; justify-content: center; animation: fadeInUp 1s ease-out; }
+        .rw { position: relative; width: min(400px, 70vw); height: min(400px, 70vw); }
+        .rbg { position: absolute; top: 0; left: 0; width: 100%; height: 100%; border-radius: 50%; background: radial-gradient(circle at 50% 50%, #0a1628 0%, #060e1e 40%, #030912 70%, #010408 100%); border: 2px solid #1a3a5c; box-shadow: 0 0 80px rgba(41,98,255,.12), 0 0 150px rgba(41,98,255,.06), inset 0 0 100px rgba(0,0,0,.6); overflow: hidden; }
+        .og { position: absolute; top: -10px; left: -10px; width: calc(100% + 20px); height: calc(100% + 20px); border-radius: 50%; border: 1px solid rgba(41,98,255,.08); box-shadow: 0 0 40px rgba(41,98,255,.06); pointer-events: none; }
+        .rr { position: absolute; border: 1px solid rgba(41,98,255,.15); border-radius: 50%; top: 50%; left: 50%; transform: translate(-50%,-50%); pointer-events: none; }
+        .r1 { width: 25%; height: 25%; border-color: rgba(41,98,255,.2); }
+        .r2 { width: 50%; height: 50%; }
+        .r3 { width: 75%; height: 75%; }
+        .r4 { width: 95%; height: 95%; border-color: rgba(41,98,255,.22); }
+        .ch, .cv { position: absolute; background: rgba(41,98,255,.08); pointer-events: none; }
+        .ch { width: 94%; height: 1px; top: 50%; left: 3%; }
+        .cv { width: 1px; height: 94%; left: 50%; top: 3%; }
+        .cd1, .cd2 { position: absolute; width: 1px; height: 94%; top: 3%; left: 50%; background: rgba(41,98,255,.04); pointer-events: none; }
+        .cd1 { transform: rotate(45deg); } .cd2 { transform: rotate(-45deg); }
+        .rs { position: absolute; top: 0; left: 0; width: 100%; height: 100%; border-radius: 50%; overflow: hidden; animation: sweep 4s linear infinite; }
+        .rs::before { content: ''; position: absolute; top: 0; left: 50%; width: 50%; height: 50%; transform-origin: 0% 100%; background: conic-gradient(from -90deg at 0% 100%, transparent 0deg, rgba(0,200,83,.005) 5deg, rgba(0,200,83,.03) 15deg, rgba(0,200,83,.08) 25deg, rgba(0,200,83,.18) 35deg, rgba(0,200,83,.3) 42deg, rgba(0,255,100,.45) 44deg, transparent 45deg); }
+        .rs::after { content: ''; position: absolute; top: 50%; left: 50%; width: 47%; height: 2px; transform-origin: 0% 50%; background: linear-gradient(90deg, rgba(0,255,100,.8), rgba(0,255,100,.1), transparent); box-shadow: 0 0 12px rgba(0,255,100,.5), 0 -2px 8px rgba(0,255,100,.3); }
+        .rc { position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); width: 8px; height: 8px; background: #00ff64; border-radius: 50%; animation: glowPulse 2s ease-in-out infinite; z-index: 10; }
+
+        /* Targets — start dim, flash bright when sweep hits them */
+        .tg {
+            position: absolute;
+            font-weight: 900;
+            font-size: 20px;
+            color: #00C853;
+            opacity: .15;
+            text-shadow: 0 0 3px rgba(0,200,83,.2);
+            z-index: 5;
+            pointer-events: none;
+        }
+
+        .tg.contact {
+            animation: contactFlash 3.8s ease-out forwards;
+        }
+
+        /* Expanding ring when target is hit */
+        .ping-ring {
+            position: absolute;
+            border: 1px solid rgba(0,255,100,.5);
+            border-radius: 50%;
+            width: 10px;
+            height: 10px;
+            pointer-events: none;
+            animation: expandRing 1.5s ease-out forwards;
+            opacity: 0;
+        }
+
+        .ping-ring.active {
+            opacity: 1;
+        }
+
+        .st { font-size: clamp(28px, 8vw, 56px); font-weight: 700; color: #d0ddff; letter-spacing: clamp(8px, 3vw, 18px); margin-top: 35px; text-shadow: 0 0 40px rgba(41,98,255,.4), 0 2px 4px rgba(0,0,0,.5); animation: fadeInUp 1.2s ease-out .3s both; }
+        .ss { font-size: clamp(10px, 2.5vw, 14px); color: #4a6a8a; letter-spacing: clamp(3px, 1.5vw, 8px); margin-top: 10px; animation: fadeInUp 1.2s ease-out .6s both; }
+        .sl { font-size: 13px; color: #00C853; margin-top: 28px; animation: blink 1.5s ease-in-out infinite; letter-spacing: 3px; }
+        .sx { font-size: 11px; color: #2a4a6a; margin-top: 8px; letter-spacing: 1px; animation: fadeInUp 1s ease-out 1.5s both; }
+        .sb { font-size: 11px; color: #2a4a6a; margin-top: 40px; letter-spacing: 2px; animation: fadeInUp 1.5s ease-out 2s both; font-style: italic; }
+    </style>
+</head>
+<body onclick="window.location.href='/dashboard'">
+    <div class="sc">
+        <div class="rw" id="radarWrap">
+            <div class="og"></div>
+            <div class="rbg"></div>
+            <div class="rr r1"></div><div class="rr r2"></div><div class="rr r3"></div><div class="rr r4"></div>
+            <div class="ch"></div><div class="cv"></div><div class="cd1"></div><div class="cd2"></div>
+            <div class="rs" id="sweepArm"></div>
+            <div class="rc"></div>
+            <!-- 4 targets — spread across the radar -->
+            <div class="tg" id="t0" style="top:22%;left:68%;font-size:22px">$</div>
+            <div class="tg" id="t1" style="top:60%;left:28%;font-size:20px">$</div>
+            <div class="tg" id="t2" style="top:35%;left:38%;font-size:24px">$</div>
+            <div class="tg" id="t3" style="top:70%;left:65%;font-size:18px">$</div>
+        </div>
+        <div class="st">SENTINEL</div>
+        <div class="ss">MARKET INTELLIGENCE SYSTEM</div>
+        <div class="sl">SCANNING MARKETS...</div>
+        <div class="sx">EQUITIES &#8226; CRYPTO &#8226; MACRO &#8226; NEWS</div>
+        <div class="sb">from the mind of Brandon Haston</div>
+    </div>
+    <script>
+        // ── Audio — classic radar pip ────────────────────────────
+        let audioCtx = null;
+
+        function initAudio() {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+        }
+
+        function radarPip() {
+            // Real radar contact sound: sharp 1kHz pip, ~50ms, clean
+            if (!audioCtx) return;
+            const t = audioCtx.currentTime;
+
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(1000, t);
+
+            // Instant on, short sustain, clean cutoff
+            gain.gain.setValueAtTime(0, t);
+            gain.gain.linearRampToValueAtTime(0.18, t + 0.003);
+            gain.gain.setValueAtTime(0.18, t + 0.04);
+            gain.gain.exponentialRampToValueAtTime(0.001, t + 0.09);
+
+            osc.start(t);
+            osc.stop(t + 0.1);
+        }
+
+        // ── Sweep hit detection ─────────────────────────────────
+        const SWEEP_PERIOD = 4000; // 4s per rotation, matches CSS
+        const targets = [];
+        let sweepStart = null;
+        let lastHit = {};
+
+        function setup() {
+            const wrap = document.getElementById('radarWrap');
+            if (!wrap) return;
+
+            document.querySelectorAll('.tg').forEach((el, i) => {
+                const top = parseFloat(el.style.top) / 100;
+                const left = parseFloat(el.style.left) / 100;
+                const dx = left - 0.5;
+                const dy = top - 0.5;
+                // Angle from 12 o'clock, clockwise (matches CSS sweep direction)
+                let angle = Math.atan2(dx, -dy) * (180 / Math.PI);
+                if (angle < 0) angle += 360;
+
+                targets.push({ el, angle, id: i });
+            });
+        }
+
+        function tick() {
+            if (!sweepStart) sweepStart = performance.now();
+            const elapsed = performance.now() - sweepStart;
+            const sweepAngle = ((elapsed % SWEEP_PERIOD) / SWEEP_PERIOD) * 360;
+            const sweepNum = Math.floor(elapsed / SWEEP_PERIOD);
+
+            for (const t of targets) {
+                let diff = sweepAngle - t.angle;
+                if (diff < 0) diff += 360;
+
+                // 10-degree hit window
+                if (diff >= 0 && diff < 10 && lastHit[t.id] !== sweepNum) {
+                    lastHit[t.id] = sweepNum;
+
+                    // Flash the target — remove and re-add class to restart animation
+                    t.el.classList.remove('contact');
+                    void t.el.offsetWidth;
+                    t.el.classList.add('contact');
+
+                    // Spawn expanding ring at target position
+                    spawnRing(t.el);
+
+                    // Pip
+                    radarPip();
+                }
+            }
+
+            requestAnimationFrame(tick);
+        }
+
+        function spawnRing(targetEl) {
+            const ring = document.createElement('div');
+            ring.className = 'ping-ring active';
+            ring.style.top = targetEl.style.top;
+            ring.style.left = targetEl.style.left;
+            ring.style.transform = 'translate(-50%, -50%)';
+            document.getElementById('radarWrap').appendChild(ring);
+            setTimeout(() => ring.remove(), 1500);
+        }
+
+        // ── Init ────────────────────────────────────────────────
+        // Browsers need a user gesture to unlock audio
+        function unlockAudio() {
+            initAudio();
+            document.removeEventListener('click', unlockAudio);
+            document.removeEventListener('touchstart', unlockAudio);
+        }
+        document.addEventListener('click', unlockAudio);
+        document.addEventListener('touchstart', unlockAudio);
+        try { initAudio(); } catch(e) {}
+
+        setup();
+        requestAnimationFrame(tick);
+
+        // Auto-redirect after 15 seconds, click to skip
+        setTimeout(function() { window.location.href = '/dashboard'; }, 15000);
+    </script>
+</body>
+</html>

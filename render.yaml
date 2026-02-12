@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: sentinel
+    runtime: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn web.app:app --bind 0.0.0.0:$PORT --timeout 120 --workers 2
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.13.0"
+      - key: FLASK_SECRET
+        generateValue: true
+      - key: FRED_API_KEY
+        sync: false
+      - key: NEWSAPI_KEY
+        sync: false

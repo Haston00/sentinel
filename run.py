@@ -15,16 +15,12 @@ def main():
     print("  SENTINEL — Market Intelligence System")
     print("=" * 60)
     print()
-    print("Launching Streamlit dashboard...")
+    print("Launching Flask dashboard on http://localhost:5000")
     print("Press Ctrl+C to stop.")
     print()
 
-    app_path = PROJECT_ROOT / "dashboard" / "app.py"
-
     subprocess.run(
-        [sys.executable, "-m", "streamlit", "run", str(app_path),
-         "--server.headless", "true",
-         "--theme.base", "dark"],
+        [sys.executable, "-m", "web.app"],
         cwd=str(PROJECT_ROOT),
     )
 
